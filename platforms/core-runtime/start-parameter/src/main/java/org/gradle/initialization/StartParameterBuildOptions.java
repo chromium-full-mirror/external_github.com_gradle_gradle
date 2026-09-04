@@ -36,6 +36,7 @@ import org.gradle.internal.buildoption.Option;
 import org.gradle.internal.buildoption.Origin;
 import org.gradle.internal.buildoption.StringBuildOption;
 import org.gradle.internal.watch.registry.WatchMode;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.File;
@@ -292,7 +293,7 @@ public class StartParameterBuildOptions extends BuildOptionSet<StartParameterInt
         }
 
         @Override
-        public void applyTo(List<String> values, StartParameterInternal settings, Origin origin) {
+        public void applyTo(@NonNull List<String> values, @NonNull StartParameterInternal settings, @NonNull Origin origin) {
             Transformer<File, String> resolver = new BasicFileResolver(settings.getCurrentDir());
 
             for (String script : values) {
@@ -312,7 +313,7 @@ public class StartParameterBuildOptions extends BuildOptionSet<StartParameterInt
         }
 
         @Override
-        public void applyTo(List<String> values, StartParameterInternal settings, Origin origin) {
+        public void applyTo(@NonNull List<String> values, @NonNull StartParameterInternal settings, @NonNull Origin origin) {
             settings.setExcludedTaskNames(values);
         }
 
@@ -328,7 +329,7 @@ public class StartParameterBuildOptions extends BuildOptionSet<StartParameterInt
         }
 
         @Override
-        public void applyTo(List<String> values, StartParameterInternal settings, Origin origin) {
+        public void applyTo(@NonNull List<String> values, @NonNull StartParameterInternal settings, @NonNull Origin origin) {
             Transformer<File, String> resolver = new BasicFileResolver(settings.getCurrentDir());
 
             for (String includedBuild : values) {
@@ -337,7 +338,7 @@ public class StartParameterBuildOptions extends BuildOptionSet<StartParameterInt
         }
 
         @Override
-        protected OptionCategory getCategory() {
+        protected @NonNull OptionCategory getCategory() {
             return OptionCategory.CONFIGURATION;
         }
     }
@@ -624,7 +625,7 @@ public class StartParameterBuildOptions extends BuildOptionSet<StartParameterInt
         }
 
         @Override
-        public void applyTo(List<String> modulesToUpdate, StartParameterInternal settings, Origin origin) {
+        public void applyTo(@NonNull List<String> modulesToUpdate, @NonNull StartParameterInternal settings, @NonNull Origin origin) {
             settings.setLockedDependenciesToUpdate(modulesToUpdate);
         }
 
