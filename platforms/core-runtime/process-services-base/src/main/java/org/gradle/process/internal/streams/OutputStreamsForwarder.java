@@ -18,12 +18,15 @@ package org.gradle.process.internal.streams;
 
 import org.gradle.internal.UncheckedException;
 import org.gradle.internal.operations.CurrentBuildOperationRef;
+import org.jspecify.annotations.Nullable;
 
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Reads from the process' stdout and stderr (if not merged into stdout) and forwards to {@link OutputStream}.
@@ -34,9 +37,10 @@ public class OutputStreamsForwarder implements FinishNotifyingStreamsHandler {
     private final boolean readErrorStream;
     private final AtomicInteger pendingStreams;
     private final CompletableFuture<Void> streamsFinished = new CompletableFuture<>();
-    private Executor executor;
-    private volatile ExecOutputHandleRunner standardOutputReader;
-    private volatile ExecOutputHandleRunner standardErrorReader;
+    // Set by connectStreams(); the error reader only when readErrorStream is true
+    private @Nullable Executor executor;
+    private volatile @Nullable ExecOutputHandleRunner standardOutputReader;
+    private volatile @Nullable ExecOutputHandleRunner standardErrorReader;
 
     public OutputStreamsForwarder(OutputStream standardOutput, OutputStream errorOutput, boolean readErrorStream) {
         this.standardOutput = standardOutput;
@@ -57,18 +61,18 @@ public class OutputStreamsForwarder implements FinishNotifyingStreamsHandler {
     @Override
     public void start() {
         if (readErrorStream) {
-            standardErrorReader.associateBuildOperation(CurrentBuildOperationRef.instance().get());
-            executor.execute(standardErrorReader);
+            requireNonNull(standardErrorReader).associateBuildOperation(CurrentBuildOperationRef.instance().get());
+            requireNonNull(executor).execute(standardErrorReader);
         }
-        standardOutputReader.associateBuildOperation(CurrentBuildOperationRef.instance().get());
-        executor.execute(standardOutputReader);
+        requireNonNull(standardOutputReader).associateBuildOperation(CurrentBuildOperationRef.instance().get());
+        requireNonNull(executor).execute(standardOutputReader);
     }
 
     @Override
     public void removeStartupContext() {
-        standardOutputReader.clearAssociatedBuildOperation();
+        requireNonNull(standardOutputReader).clearAssociatedBuildOperation();
         if (readErrorStream) {
-            standardErrorReader.clearAssociatedBuildOperation();
+            requireNonNull(standardErrorReader).clearAssociatedBuildOperation();
         }
     }
 
@@ -94,9 +98,9 @@ public class OutputStreamsForwarder implements FinishNotifyingStreamsHandler {
 
     @Override
     public void disconnect() {
-        standardOutputReader.disconnect();
+        requireNonNull(standardOutputReader).disconnect();
         if (readErrorStream) {
-            standardErrorReader.disconnect();
+            requireNonNull(standardErrorReader).disconnect();
         }
     }
 }

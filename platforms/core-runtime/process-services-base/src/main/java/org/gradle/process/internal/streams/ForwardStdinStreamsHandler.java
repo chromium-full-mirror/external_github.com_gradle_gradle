@@ -18,11 +18,14 @@ package org.gradle.process.internal.streams;
 
 import org.gradle.internal.UncheckedException;
 import org.gradle.util.internal.DisconnectableInputStream;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Forwards the contents of an {@link InputStream} to the process' stdin
@@ -30,8 +33,9 @@ import java.util.concurrent.Executor;
 public class ForwardStdinStreamsHandler implements StreamsHandler {
     private final InputStream input;
     private final CountDownLatch completed = new CountDownLatch(1);
-    private Executor executor;
-    private ExecOutputHandleRunner standardInputWriter;
+    // Set by connectStreams()
+    private @Nullable Executor executor;
+    private @Nullable ExecOutputHandleRunner standardInputWriter;
 
     public ForwardStdinStreamsHandler(InputStream input) {
         this.input = input;
@@ -52,7 +56,7 @@ public class ForwardStdinStreamsHandler implements StreamsHandler {
 
     @Override
     public void start() {
-        executor.execute(standardInputWriter);
+        requireNonNull(executor).execute(standardInputWriter);
     }
 
     @Override
@@ -72,7 +76,7 @@ public class ForwardStdinStreamsHandler implements StreamsHandler {
     @Override
     public void disconnect() {
         try {
-            standardInputWriter.closeInput();
+            requireNonNull(standardInputWriter).closeInput();
         } catch (IOException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         }
