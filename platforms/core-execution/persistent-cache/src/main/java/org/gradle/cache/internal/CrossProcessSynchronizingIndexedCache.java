@@ -65,7 +65,7 @@ public class CrossProcessSynchronizingIndexedCache<K, V> implements MultiProcess
     }
 
     @Override
-    public void afterLockAcquire(FileLock.State currentCacheState) {
+    public void afterLockAcquire(FileLock.@Nullable State currentCacheState) {
         target.afterLockAcquire(currentCacheState);
     }
 

@@ -81,7 +81,7 @@ public class AsyncCacheAccessDecoratedCache<K, V> implements MultiProcessSafeAsy
     }
 
     @Override
-    public void afterLockAcquire(FileLock.State currentCacheState) {
+    public void afterLockAcquire(FileLock.@Nullable State currentCacheState) {
         indexedCache.afterLockAcquire(currentCacheState);
     }
 

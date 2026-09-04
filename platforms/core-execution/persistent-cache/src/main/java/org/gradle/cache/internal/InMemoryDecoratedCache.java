@@ -22,12 +22,15 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.gradle.cache.FileLock;
 import org.gradle.internal.Cast;
 import org.gradle.internal.UncheckedException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 class InMemoryDecoratedCache<K, V> implements MultiProcessSafeAsyncPersistentIndexedCache<K, V>, InMemoryCacheController {
     private final static Logger LOG = LoggerFactory.getLogger(InMemoryDecoratedCache.class);
@@ -49,6 +52,7 @@ class InMemoryDecoratedCache<K, V> implements MultiProcessSafeAsyncPersistentInd
         return "{in-memory-cache cache: " + delegate + "}";
     }
 
+    @Nullable
     @Override
     public V get(final K key) {
         Object value;
@@ -68,6 +72,9 @@ class InMemoryDecoratedCache<K, V> implements MultiProcessSafeAsyncPersistentInd
     }
 
     @Override
+    // Returns null when a concurrent get(key) or removeLater() stores the NULL sentinel
+    // for this key, although callers expect a value. Fixing this changes behavior.
+    @SuppressWarnings("NullAway")
     public V get(final K key, final Function<? super K, ? extends V> producer, final Runnable completion) {
         final AtomicReference<Runnable> completionRef = new AtomicReference<>(completion);
         Object value;
@@ -116,12 +123,12 @@ class InMemoryDecoratedCache<K, V> implements MultiProcessSafeAsyncPersistentInd
     }
 
     @Override
-    public void afterLockAcquire(FileLock.State currentCacheState) {
+    public void afterLockAcquire(FileLock.@Nullable State currentCacheState) {
         boolean outOfDate = false;
         FileLock.State previousState = fileLockStateReference.get();
         if (previousState == null) {
             outOfDate = true;
-        } else if (currentCacheState.hasBeenUpdatedSince(previousState)) {
+        } else if (requireNonNull(currentCacheState).hasBeenUpdatedSince(previousState)) {
             LOG.info("Invalidating in-memory cache of {}", cacheId);
             outOfDate = true;
         }

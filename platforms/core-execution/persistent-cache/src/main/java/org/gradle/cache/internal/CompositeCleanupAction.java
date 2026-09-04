@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import org.gradle.cache.CleanableStore;
 import org.gradle.cache.CleanupAction;
 import org.gradle.cache.CleanupProgressMonitor;
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class CompositeCleanupAction implements CleanupAction {
     }
 
     @Override
-    public void clean(CleanableStore cleanableStore, CleanupProgressMonitor progressMonitor) {
+    public void clean(@NonNull CleanableStore cleanableStore, @NonNull CleanupProgressMonitor progressMonitor) {
         for (CleanupAction action : cleanups) {
             action.clean(cleanableStore, progressMonitor);
         }
@@ -79,7 +80,7 @@ public class CompositeCleanupAction implements CleanupAction {
         }
 
         @Override
-        public void clean(CleanableStore cleanableStore, CleanupProgressMonitor progressMonitor) {
+        public void clean(@NonNull CleanableStore cleanableStore, @NonNull CleanupProgressMonitor progressMonitor) {
             action.clean(new CleanableSubDir(cleanableStore, baseDir), progressMonitor);
         }
     }

@@ -24,6 +24,7 @@ import org.gradle.internal.operations.BuildOperationContext;
 import org.gradle.internal.operations.BuildOperationDescriptor;
 import org.gradle.internal.operations.BuildOperationRunner;
 import org.gradle.internal.operations.RunnableBuildOperation;
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.time.Instant;
@@ -41,17 +42,17 @@ class DefaultCacheCleanupStrategy implements CacheCleanupStrategy {
     }
 
     @Override
-    public void clean(CleanableStore cleanableStore, Instant lastCleanupTime) {
+    public void clean(@NonNull CleanableStore cleanableStore, @NonNull Instant lastCleanupTime) {
         buildOperationRunner.run(new RunnableBuildOperation() {
             @Override
-            public void run(BuildOperationContext context) {
+            public void run(@NonNull BuildOperationContext context) {
                 DefaultCleanupProgressMonitor progressMonitor = new DefaultCleanupProgressMonitor(context);
                 cleanupAction.clean(cleanableStore, progressMonitor);
                 context.setResult(new CacheCleanupResult(progressMonitor.getDeleted(), lastCleanupTime));
             }
 
             @Override
-            public BuildOperationDescriptor.Builder description() {
+            public BuildOperationDescriptor.@NonNull Builder description() {
                 return BuildOperationDescriptor.displayName("Clean up " + cleanableStore.getDisplayName())
                     .details(new CacheCleanupDetails(cleanableStore.getBaseDir()));
             }

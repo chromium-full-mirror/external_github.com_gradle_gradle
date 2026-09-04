@@ -37,6 +37,7 @@ import org.gradle.internal.UncheckedException;
 import org.gradle.internal.concurrent.ExecutorFactory;
 import org.gradle.internal.concurrent.ManagedExecutor;
 import org.gradle.internal.serialize.Serializer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.gradle.cache.FileLockManager.LockMode.Exclusive;
+import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
 public class DefaultCacheCoordinator implements CacheCreationCoordinator, ExclusiveCacheAccessCoordinator {
@@ -69,16 +71,16 @@ public class DefaultCacheCoordinator implements CacheCreationCoordinator, Exclus
     private final AbstractCrossProcessCacheAccess crossProcessCacheAccess;
     private final CacheAccessOperationsStack operations;
 
-    private ManagedExecutor cacheUpdateExecutor;
-    private ExclusiveCacheAccessingWorker cacheAccessWorker;
+    private @Nullable ManagedExecutor cacheUpdateExecutor;
+    private @Nullable ExclusiveCacheAccessingWorker cacheAccessWorker;
     private final Lock stateLock = new ReentrantLock(); // protects the following state
     private final Condition condition = stateLock.newCondition();
 
     private boolean open;
-    private Thread owner;
-    private FileLock fileLock;
-    private FileLock.State stateAtOpen;
-    private Runnable fileLockHeldByOwner;
+    private @Nullable Thread owner;
+    private @Nullable FileLock fileLock;
+    private FileLock.@Nullable State stateAtOpen;
+    private @Nullable Runnable fileLockHeldByOwner;
     private int cacheClosedCount;
     private boolean alreadyCleaned;
 
@@ -436,7 +438,7 @@ public class DefaultCacheCoordinator implements CacheCreationCoordinator, Exclus
         } finally {
             stateLock.unlock();
         }
-        return fileLock;
+        return requireNonNull(fileLock);
     }
 
     private static class TransparentFileAccess implements FileAccess {
@@ -489,6 +491,7 @@ public class DefaultCacheCoordinator implements CacheCreationCoordinator, Exclus
         }
     }
 
+    @Nullable
     Thread getOwner() {
         return owner;
     }
@@ -552,7 +555,7 @@ public class DefaultCacheCoordinator implements CacheCreationCoordinator, Exclus
             }
         }
 
-        private void checkCompatibleCacheDecorator(Collection<String> faultMessages, CacheDecorator cacheDecorator) {
+        private void checkCompatibleCacheDecorator(Collection<String> faultMessages, @Nullable CacheDecorator cacheDecorator) {
             if (!Objects.equal(cacheDecorator, parameters.getCacheDecorator())) {
                 faultMessages.add(
                     String.format(" * Requested cache decorator type (%s) doesn't match current cache type (%s)",

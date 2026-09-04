@@ -18,6 +18,8 @@ package org.gradle.cache.internal;
 
 import org.gradle.cache.FileIntegrityViolationException;
 import org.gradle.cache.ObjectHolder;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
@@ -29,6 +31,7 @@ public class FileIntegrityViolationSuppressingObjectHolderDecorator<T> implement
         this.delegate = delegate;
     }
 
+    @Nullable
     @Override
     public T get() {
         try {
@@ -44,12 +47,12 @@ public class FileIntegrityViolationSuppressingObjectHolderDecorator<T> implement
     }
 
     @Override
-    public T update(final UpdateAction<T> updateAction) {
+    public @NonNull T update(final @NonNull UpdateAction<T> updateAction) {
         return doUpdate(updateAction, () -> delegate.update(updateAction));
     }
 
     @Override
-    public T maybeUpdate(final UpdateAction<T> updateAction) {
+    public @NonNull T maybeUpdate(final @NonNull UpdateAction<T> updateAction) {
         return doUpdate(updateAction, () -> delegate.maybeUpdate(updateAction));
     }
 

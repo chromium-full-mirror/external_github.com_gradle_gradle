@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.gradle.cache.CleanableStore;
 import org.gradle.cache.CleanupAction;
 import org.gradle.cache.CleanupProgressMonitor;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public abstract class AbstractCacheCleanup implements CleanupAction {
     }
 
     @Override
-    public void clean(CleanableStore cleanableStore, CleanupProgressMonitor progressMonitor) {
+    public void clean(@NonNull CleanableStore cleanableStore, @NonNull CleanupProgressMonitor progressMonitor) {
         int filesDeleted = 0;
         for (File file : findEligibleFiles(cleanableStore)) {
             if (shouldDelete(file)) {

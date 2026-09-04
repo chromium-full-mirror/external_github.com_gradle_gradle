@@ -15,6 +15,8 @@
  */
 package org.gradle.cache;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Participates in a unit of work that accesses the cache. Implementations do not need to be thread-safe and are accessed by a single thread at a time.
  */
@@ -24,7 +26,7 @@ public interface UnitOfWorkParticipant {
      *
      * @param currentCacheState the current cache state.
      */
-    void afterLockAcquire(FileLock.State currentCacheState);
+    void afterLockAcquire(FileLock.@Nullable State currentCacheState);
 
     /**
      * Called when the cache is due to be unlocked. Call after other threads have completed work. This method may access the cache files.

@@ -23,6 +23,8 @@ import org.gradle.internal.file.Chmod;
 import org.gradle.internal.serialize.InputStreamBackedDecoder;
 import org.gradle.internal.serialize.OutputStreamBackedEncoder;
 import org.gradle.internal.serialize.Serializer;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -55,10 +57,11 @@ public class FileBackedObjectHolder<T> implements ObjectHolder<T> {
     }
 
     @Override
-    public T update(final UpdateAction<T> updateAction) {
+    public @NonNull T update(final @NonNull UpdateAction<T> updateAction) {
         class Updater implements Runnable {
             private final UpdateAction<T> updateAction;
 
+            @SuppressWarnings("NullAway.Init") // assigned by run(), which is invoked synchronously by fileAccess.updateFile()
             private T result;
 
             private Updater(UpdateAction<T> updateAction) {
@@ -79,10 +82,11 @@ public class FileBackedObjectHolder<T> implements ObjectHolder<T> {
     }
 
     @Override
-    public T maybeUpdate(UpdateAction<T> updateAction) {
+    public @NonNull T maybeUpdate(@NonNull UpdateAction<T> updateAction) {
         class MaybeUpdater implements Runnable {
             private final UpdateAction<T> updateAction;
 
+            @SuppressWarnings("NullAway.Init") // assigned by run(), which is invoked synchronously by fileAccess.updateFile()
             private T result;
 
             private MaybeUpdater(UpdateAction<T> updateAction) {
@@ -95,7 +99,8 @@ public class FileBackedObjectHolder<T> implements ObjectHolder<T> {
                 result = updateAction.update(oldValue);
                 if (!(oldValue == null && result == null) && (oldValue == null || result == null || !oldValue.equals(result))) {
                     serialize(result);
-                } else {
+                } else if (oldValue != null) {
+                    // Both are equal; keep the stored instance. When both are null, result is already null
                     result = oldValue;
                 }
             }
@@ -124,6 +129,7 @@ public class FileBackedObjectHolder<T> implements ObjectHolder<T> {
         }
     }
 
+    @Nullable
     private T deserialize() {
         if (!cacheFile.isFile()) {
             return null;

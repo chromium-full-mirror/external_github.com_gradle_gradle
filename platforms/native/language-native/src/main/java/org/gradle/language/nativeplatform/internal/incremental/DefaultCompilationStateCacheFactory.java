@@ -25,6 +25,7 @@ import org.gradle.cache.internal.InMemoryCacheDecoratorFactory;
 import org.gradle.cache.scopes.BuildScopedCacheBuilderFactory;
 import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
+import org.jspecify.annotations.NonNull;
 
 import java.io.Closeable;
 
@@ -76,7 +77,7 @@ public class DefaultCompilationStateCacheFactory implements CompilationStateCach
         }
 
         @Override
-        public CompilationState update(UpdateAction<CompilationState> updateAction) {
+        public @NonNull CompilationState update(@NonNull UpdateAction<CompilationState> updateAction) {
             throw new UnsupportedOperationException();
         }
 

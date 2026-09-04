@@ -19,6 +19,7 @@ package org.gradle.cache.internal;
 import org.gradle.cache.CleanableStore;
 import org.gradle.cache.CleanupProgressMonitor;
 import org.gradle.internal.file.FileAccessTimeJournal;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,7 @@ public class LeastRecentlyUsedCacheCleanup extends AbstractTimeJournalAwareCache
     }
 
     @Override
-    public void clean(CleanableStore cleanableStore, CleanupProgressMonitor progressMonitor) {
+    public void clean(@NonNull CleanableStore cleanableStore, @NonNull CleanupProgressMonitor progressMonitor) {
         LOGGER.info("{} removing files not accessed on or after {}.", cleanableStore.getDisplayName(), new Date(removeUnusedEntriesOlderThan.get()));
         super.clean(cleanableStore, progressMonitor);
     }
