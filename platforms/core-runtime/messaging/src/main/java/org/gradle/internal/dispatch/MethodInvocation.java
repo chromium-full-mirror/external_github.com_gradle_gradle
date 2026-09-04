@@ -17,6 +17,7 @@ package org.gradle.internal.dispatch;
 
 import org.gradle.internal.UncheckedException;
 import org.gradle.util.internal.CollectionUtils;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -45,7 +46,7 @@ public class MethodInvocation {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
         if (obj == this) {
             return true;
         }
