@@ -19,7 +19,6 @@ import com.google.common.collect.Interner;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.problems.ProblemId;
 import org.gradle.api.problems.Problems;
-import org.gradle.api.problems.internal.GradleCoreProblemGroup;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
@@ -27,7 +26,6 @@ import java.util.Locale;
 import static org.gradle.api.internal.catalog.problems.DefaultCatalogProblemBuilder.VERSION_CATALOG_PROBLEMS;
 import static org.gradle.api.internal.catalog.problems.VersionCatalogProblemId.INVALID_VERSION_NOTATION;
 import static org.gradle.internal.deprecation.Documentation.userManual;
-import static org.gradle.util.internal.TextUtil.screamingSnakeToKebabCase;
 
 public class StrictVersionParser {
     private final Interner<String> stringInterner;
@@ -44,10 +42,7 @@ public class StrictVersionParser {
         }
         int idx = version.indexOf("!!");
         if (idx == 0) {
-            ProblemId problemId = ProblemId.create(
-                screamingSnakeToKebabCase(INVALID_VERSION_NOTATION.name()),
-                INVALID_VERSION_NOTATION.getDisplayName(),
-                GradleCoreProblemGroup.versionCatalog());
+            ProblemId problemId = INVALID_VERSION_NOTATION.problemId(problems.getGroups());
             throw problems.getReporter().throwing(new InvalidUserDataException(), problemId, spec -> spec
                 .contextualLabel("The strict version modifier (!!) must be appended to a valid version number")
                 .details("The strict version modifier syntax expects a base version before '!!'")

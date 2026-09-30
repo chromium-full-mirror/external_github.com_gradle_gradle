@@ -706,7 +706,7 @@ my-other-lib = {group = "org.gradle.test", name="lib2", version.ref="rich"}
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:catalog-file-does-not-exist'
+            fqid == 'Dependencies:Declaration:Import of external catalog file failed'
             definition.id.displayName == 'Import of external catalog file failed'
             contextualLabel == 'In version catalog libs, import of external catalog file failed'
             details == "File \'${file('missing.toml').absolutePath}\' doesn\'t exist"
@@ -783,7 +783,7 @@ lib = {group = "org.gradle.test", name="lib", version.ref="commons-lib"}
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == "Unexpected '/', expected a newline or end-of-input"
             details == 'TOML syntax invalid'
@@ -813,7 +813,7 @@ key2=
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == 'Unexpected end of line, expected \', ", \'\'\', """, a number, a boolean, a date/time, an array, or a table'
             details == 'TOML syntax invalid'
@@ -824,7 +824,7 @@ key2=
         }
         verifyAll(receivedProblem(1)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == 'Unexpected end of line, expected \', ", \'\'\', """, a number, a boolean, a date/time, an array, or a table'
             details == 'TOML syntax invalid'
@@ -873,7 +873,7 @@ dependencyResolutionManagement {
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:too-many-import-files'
+            fqid == 'Dependencies:Declaration:Importing multiple files is not supported'
             definition.id.displayName == VersionCatalogProblemId.TOO_MANY_IMPORT_FILES.displayName
             contextualLabel == "In version catalog testLibs, ${VersionCatalogProblemId.TOO_MANY_IMPORT_FILES.displayName.uncapitalize()}"
             details == 'The import consists of multiple files'
@@ -901,7 +901,7 @@ dependencyResolutionManagement {
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:no-import-files'
+            fqid == 'Dependencies:Declaration:No files were resolved to be imported'
             definition.id.displayName == VersionCatalogProblemId.NO_IMPORT_FILES.displayName
             contextualLabel == "In version catalog testLibs, ${VersionCatalogProblemId.NO_IMPORT_FILES.displayName.uncapitalize()}"
             details == 'The imported dependency doesn\'t resolve into any file'
@@ -946,7 +946,7 @@ dependencyResolutionManagement {
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:too-many-import-invocation'
+            fqid == "Dependencies:Declaration:Multiple 'from' invocations"
             definition.id.displayName == VersionCatalogProblemId.TOO_MANY_IMPORT_INVOCATION.displayName
             contextualLabel == 'In version catalog testLibs, you can only call the \'from\' method a single time'
             details == 'The method was called more than once'
@@ -1055,7 +1055,7 @@ my-lib = "org.gradle.test:lib"
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:invalid-dependency-notation'
+            fqid == 'Dependencies:Declaration:Invalid dependency notation'
             definition.id.displayName == 'Invalid dependency notation'
             contextualLabel == "In version catalog libs, on alias 'my-lib' notation 'org.gradle.test:lib' is not a valid dependency notation"
             details == 'When using a string to declare library coordinates, you must use a valid dependency notation'
@@ -1080,7 +1080,7 @@ my-lib = "org.gradle.test"
         then:
         verifyAll(receivedProblem) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:invalid-dependency-notation'
+            fqid == 'Dependencies:Declaration:Invalid dependency notation'
             definition.id.displayName == 'Invalid dependency notation'
             contextualLabel == "In version catalog libs, on alias 'my-lib' notation 'org.gradle.test' is not a valid dependency notation"
             details == 'When using a string to declare library coordinates, you must use a valid dependency notation'
@@ -1103,7 +1103,7 @@ my-lib = "org.gradle.test:lib:1.0:classifier"
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:invalid-dependency-notation'
+            fqid == 'Dependencies:Declaration:Invalid dependency notation'
             definition.id.displayName == 'Invalid dependency notation'
             contextualLabel == "In version catalog libs, on alias 'my-lib' notation 'org.gradle.test:lib:1.0:classifier' is not a valid dependency notation"
             details == 'When using a string to declare library coordinates, you must use a valid dependency notation'
@@ -1163,7 +1163,7 @@ flyway.core = { module = "org.flywaydb:flyway-core" }
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == "In version catalog libs, entry 'flyway.core' is not a valid alias"
             details == 'Dots (.) in TOML keys create nested entries and cannot be used in alias names'
@@ -1189,7 +1189,7 @@ flyway.postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == "In version catalog libs, entries 'flyway.core' and 'flyway.postgresql' are not valid aliases"
             details == 'Dots (.) in TOML keys create nested entries and cannot be used in alias names'
@@ -1214,7 +1214,7 @@ kotlin.jvm = "org.jetbrains.kotlin.jvm:1.9.0"
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == "In version catalog libs, entry 'kotlin.jvm' is not a valid alias"
             details == 'Dots (.) in TOML keys create nested entries and cannot be used in alias names'
@@ -1239,7 +1239,7 @@ $alias = $declaration
         then:
         verifyAll(receivedProblem(0)) {
             severity == Severity.ERROR
-            fqid == 'dependency-version-catalog:toml-syntax-error'
+            fqid == 'Dependencies:Declaration:TOML syntax error'
             definition.id.displayName == 'TOML syntax error'
             contextualLabel == "In version catalog libs, entry '${alias}' is not a valid alias"
             details == 'Dots (.) in TOML keys create nested entries and cannot be used in alias names'

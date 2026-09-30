@@ -42,7 +42,6 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.problems.ProblemSpec;
-import org.gradle.api.problems.internal.GradleCoreProblemGroup;
 import org.gradle.api.problems.internal.ProblemInternal;
 import org.gradle.api.problems.internal.ProblemSpecInternal;
 import org.gradle.api.problems.internal.ProblemsInternal;
@@ -52,7 +51,6 @@ import org.gradle.internal.UncheckedException;
 import org.gradle.internal.classpath.Instrumented;
 import org.gradle.internal.lazy.Lazy;
 import org.gradle.internal.management.VersionCatalogBuilderInternal;
-import org.gradle.util.internal.TextUtil;
 import org.jspecify.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -213,9 +211,9 @@ public abstract class DefaultVersionCatalogBuilder implements VersionCatalogBuil
         return new DefaultVersionCatalog(name, description.getOrElse(""), realizedLibs.build(), ImmutableMap.copyOf(bundles), ImmutableMap.copyOf(versionConstraints), realizedPlugins.build());
     }
 
-    private static ProblemSpecInternal configureVersionCatalogError(ProblemSpecInternal builder, String message, VersionCatalogProblemId catalogProblemId) {
+    private ProblemSpecInternal configureVersionCatalogError(ProblemSpecInternal builder, String message, VersionCatalogProblemId catalogProblemId) {
         return builder.
-            id(TextUtil.screamingSnakeToKebabCase(catalogProblemId.name()), catalogProblemId.getDisplayName(), GradleCoreProblemGroup.versionCatalog())
+            id(catalogProblemId.problemId(getProblemsService().getGroups()))
             .contextualLabel(message)
             .documentedAt(userManual(VERSION_CATALOG_PROBLEMS, catalogProblemId.name().toLowerCase(Locale.ROOT)));
     }

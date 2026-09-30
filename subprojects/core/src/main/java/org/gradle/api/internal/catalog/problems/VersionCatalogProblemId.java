@@ -15,11 +15,16 @@
  */
 package org.gradle.api.internal.catalog.problems;
 
+import org.gradle.api.problems.ProblemGroups;
+import org.gradle.api.problems.ProblemId;
+
 /**
  * Problem IDs for version catalog problems.
  *
  * The lowercase names of these correspond to sections in <a href="https://docs.gradle.org/current/userguide/version_catalog_problems.html">version catalog problems</a>.
  * Always change version_catalog_problems.adoc accordingly when renaming an ID.
+ * <p>
+ * The problems are reported in {@code Dependencies > Declaration}, named by their display name.
  */
 public enum VersionCatalogProblemId {
 
@@ -51,5 +56,9 @@ public enum VersionCatalogProblemId {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public ProblemId problemId(ProblemGroups groups) {
+        return groups.getDependencies().getDeclaration().problemId(displayName);
     }
 }
