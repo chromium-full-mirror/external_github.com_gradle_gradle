@@ -87,11 +87,11 @@ class TomlCatalogFileParserTest extends Specification {
         thrown(InvalidUserDataException)
         problems.assertProblemEmittedOnce() {
             it.definition.id.displayName == "Bundle declares dependency on non-existent alias"
-            it.definition.id.group == problems.groups.dependencies.declaration
             it.contextualLabel == "In version catalog libs, a bundle with name 'guava' declares a dependency on 'hello' which doesn't exist"
             it.details == "Bundles can only contain references to existing library aliases."
             it.solutions == ["Make sure that the library alias 'hello' is declared", "Remove 'hello' from bundle 'guava'."]
-            it.definition.documentationLink.url.endsWith('userguide/version_catalog_problems.html#undefined_alias_reference')
+            it.definition.documentationLink.url.endsWith('userguide/version_catalog_problems.html#undefined_alias_reference') &&
+                it.definition.id.group == problems.groups.dependencies.declaration
         }
     }
 

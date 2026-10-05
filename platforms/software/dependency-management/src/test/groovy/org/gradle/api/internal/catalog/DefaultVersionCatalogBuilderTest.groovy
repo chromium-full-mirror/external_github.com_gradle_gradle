@@ -37,7 +37,6 @@ class DefaultVersionCatalogBuilderTest extends AbstractVersionCatalogTest {
         thrown(InvalidUserDataException)
         problems.assertProblemEmittedOnce({
             it.definition.id.displayName == 'Invalid dependency notation'
-            it.definition.id.group == problems.groups.dependencies.declaration
             it.definition.severity == Severity.ERROR
             it.contextualLabel == "In version catalog libs, on alias 'foo' notation '' is not a valid dependency notation"
             it.details == "The 'to(String)' method only supports 'group:artifact:version' coordinates"
@@ -45,7 +44,8 @@ class DefaultVersionCatalogBuilderTest extends AbstractVersionCatalogTest {
                 "Make sure that the coordinates consist of 3 parts separated by colons, eg: my.group:artifact:1.2",
                 "Use the to(group, name) method instead"
             ]
-            it.definition.documentationLink.url.endsWith('userguide/version_catalog_problems.html#invalid_dependency_notation')
+            it.definition.documentationLink.url.endsWith('userguide/version_catalog_problems.html#invalid_dependency_notation') &&
+                it.definition.id.group == problems.groups.dependencies.declaration
         })
 
         where:
