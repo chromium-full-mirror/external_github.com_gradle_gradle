@@ -16,8 +16,10 @@
 
 package org.gradle.plugin.devel.tasks.internal;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -37,7 +39,6 @@ import org.gradle.api.problems.FileLocation;
 import org.gradle.api.problems.LineInFileLocation;
 import org.gradle.api.problems.OffsetInFileLocation;
 import org.gradle.api.problems.Problem;
-import org.gradle.api.problems.ProblemGroup;
 import org.gradle.api.problems.ProblemId;
 import org.gradle.api.problems.ProblemLocation;
 import org.gradle.api.problems.internal.DefaultDeprecationData;
@@ -54,6 +55,7 @@ import org.gradle.api.problems.internal.DeprecationData;
 import org.gradle.api.problems.internal.DocLinkInternal;
 import org.gradle.api.problems.internal.GeneralData;
 import org.gradle.api.problems.internal.ProblemGroupInternal;
+import org.gradle.api.problems.internal.ProblemGroupsInternal;
 import org.gradle.api.problems.internal.PropertyTraceData;
 import org.gradle.api.problems.internal.TypeValidationData;
 import org.jspecify.annotations.NonNull;
@@ -90,24 +92,26 @@ public class ValidationProblemSerialization {
         }
     }
 
-    private static final GsonBuilder GSON_BUILDER = createGsonBuilder();
-
-    public static SerializationResult deserialize(String lines) {
-        Gson gson = GSON_BUILDER.create();
+    /**
+     * Reads the problems back. Their groups are resolved against the given groups, so they come back as the predefined
+     * groups they were reported into.
+     */
+    public static SerializationResult deserialize(String lines, ProblemGroupsInternal groups) {
+        Gson gson = createGsonBuilder(new ProblemIdDeserializer(groups)).create();
         Type type = new TypeToken<List<List<DefaultProblem>>>() {}.getType();
         List<List<DefaultProblem>> lists = gson.fromJson(lines, type);
         return new SerializationResult(lists.get(0), lists.get(1));
     }
 
     public static String serialize(List<Problem> warnings, List<Problem> errors) {
-        Gson gson = createGsonBuilder().create();
+        Gson gson = createGsonBuilder(new ProblemIdSerializer()).create();
         return gson.toJson(Arrays.asList(warnings, errors));
     }
 
-    private static GsonBuilder createGsonBuilder() {
+    private static GsonBuilder createGsonBuilder(Object problemIdAdapter) {
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapterFactory(new ProblemReportAdapterFactory());
-        gsonBuilder.registerTypeAdapter(ProblemId.class, new ProblemIdInstanceCreator());
+        gsonBuilder.registerTypeAdapter(ProblemId.class, problemIdAdapter);
         gsonBuilder.registerTypeHierarchyAdapter(DocLink.class, new DocLinkAdapter());
         gsonBuilder.registerTypeHierarchyAdapter(ProblemLocation.class, new LocationAdapter());
         gsonBuilder.registerTypeHierarchyAdapter(AdditionalData.class, new AdditionalDataAdapter());
@@ -513,47 +517,51 @@ public class ValidationProblemSerialization {
         }
     }
 
-    private static class ProblemIdInstanceCreator implements JsonDeserializer<ProblemId>, JsonSerializer<ProblemId> {
+    /**
+     * Writes a problem id as its name and the names of its groups, root group first.
+     */
+    private static class ProblemIdSerializer implements JsonSerializer<ProblemId> {
+
+        @Override
+        public JsonElement serialize(ProblemId problemId, Type type, JsonSerializationContext jsonSerializationContext) {
+            JsonArray groupPath = new JsonArray();
+            for (String groupName : groupPathOf(ProblemGroupInternal.of(problemId.getGroup()))) {
+                groupPath.add(groupName);
+            }
+            JsonObject result = new JsonObject();
+            result.addProperty("name", problemId.getName());
+            result.add("group", groupPath);
+            return result;
+        }
+
+        private static ImmutableList<String> groupPathOf(ProblemGroupInternal group) {
+            ImmutableList.Builder<String> leafToRoot = ImmutableList.builder();
+            for (ProblemGroupInternal current = group; current != null; current = current.getParentInternal()) {
+                leafToRoot.add(current.getName());
+            }
+            return leafToRoot.build().reverse();
+        }
+    }
+
+    /**
+     * Reads a problem id written by {@link ProblemIdSerializer}, resolving its group path against the predefined groups.
+     */
+    private static class ProblemIdDeserializer implements JsonDeserializer<ProblemId> {
+
+        private final ProblemGroupsInternal groups;
+
+        ProblemIdDeserializer(ProblemGroupsInternal groups) {
+            this.groups = groups;
+        }
 
         @Override
         public ProblemId deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
             JsonObject problemObject = jsonElement.getAsJsonObject();
-            String name = problemObject.get("name").getAsString();
-            String displayName = problemObject.get("displayName").getAsString();
-            ProblemGroup group = deserializeGroup(problemObject.get("group"));
-            return ProblemId.create(name, displayName, group);
-        }
-
-        private static ProblemGroup deserializeGroup(JsonElement groupObject) {
-            JsonObject group = groupObject.getAsJsonObject();
-            String name = group.get("name").getAsString();
-            String displayName = group.get("displayName").getAsString();
-            JsonElement parent = group.get("parent");
-            if (parent == null) {
-                return ProblemGroup.create(name, displayName);
+            ImmutableList.Builder<String> groupPath = ImmutableList.builder();
+            for (JsonElement groupName : problemObject.get("group").getAsJsonArray()) {
+                groupPath.add(groupName.getAsString());
             }
-            return ProblemGroup.create(name, displayName, deserializeGroup(parent));
-        }
-
-        @Override
-        public JsonElement serialize(ProblemId problemId, Type type, JsonSerializationContext jsonSerializationContext) {
-            JsonObject result = new JsonObject();
-            result.addProperty("name", problemId.getName());
-            result.addProperty("displayName", problemId.getDisplayName());
-            result.add("group", serializeGroup(ProblemGroupInternal.of(problemId.getGroup())));
-            return result;
-        }
-
-
-        private static JsonObject serializeGroup(ProblemGroupInternal group) {
-            JsonObject groupObject = new JsonObject();
-            groupObject.addProperty("name", group.getName());
-            groupObject.addProperty("displayName", group.getDisplayName());
-            ProblemGroupInternal parent = group.getParentInternal();
-            if (parent != null) {
-                groupObject.add("parent", serializeGroup(parent));
-            }
-            return groupObject;
+            return groups.problemId(groupPath.build(), problemObject.get("name").getAsString());
         }
     }
 

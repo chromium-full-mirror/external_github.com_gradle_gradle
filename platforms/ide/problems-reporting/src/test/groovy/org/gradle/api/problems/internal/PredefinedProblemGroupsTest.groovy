@@ -367,6 +367,37 @@ class PredefinedProblemGroupsTest extends Specification {
         unknownChild.message == "Unknown predefined problem group 'Nope'"
     }
 
+    def "resolves a problem id from a path of group names"() {
+        expect:
+        def predefined = DefaultProblemGroups.INSTANCE.problemId(["Gradle", "Plugin Validation"], "Missing annotation")
+        predefined == groups.gradle.pluginValidation.problemId("Missing annotation")
+        predefined.group.is(groups.gradle.pluginValidation)
+
+        def undefined = DefaultProblemGroups.INSTANCE.problemId(["Compilation", "Undefined"], "Some problem")
+        undefined.group.is(groups.compilation.undefined)
+
+        def userDefined = DefaultProblemGroups.INSTANCE.problemId(["Transformation", "KMP", "Bundling"], "Bundle failed")
+        userDefined == groups.transformation.group("KMP").group("Bundling").problemId("Bundle failed")
+        userDefined.group.parent.parent.is(groups.transformation)
+    }
+
+    def "resolving a problem id fails for the path #path"() {
+        when:
+        DefaultProblemGroups.INSTANCE.problemId(path, "Some problem")
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains(message)
+
+        where:
+        path                                        | message
+        []                                          | "must name at least a root group"
+        ["validation"]                              | "Unknown predefined root problem group 'validation'"
+        ["Compilation"]                             | "is a root group and cannot hold problems"
+        ["Gradle", "Plugins"]                       | "Plugins"
+        ["Gradle", "Plugin Validation", "Caching"]  | "cannot have sub-groups"
+    }
+
     def "serialized form only carries the path, not the siblings"() {
         when:
         def bytes = serialize(groups.compilation.java)

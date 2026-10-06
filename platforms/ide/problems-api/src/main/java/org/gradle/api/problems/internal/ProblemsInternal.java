@@ -28,6 +28,9 @@ public interface ProblemsInternal extends Problems {
      *
      * @return The reporter.
      */
+    @Override
+    ProblemGroupsInternal getGroups();
+
     ProblemReporterInternal getInternalReporter();
 
     ProblemsInfrastructure getInfrastructure();
