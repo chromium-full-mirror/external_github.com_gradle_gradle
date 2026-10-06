@@ -108,6 +108,10 @@ For example, `compilation:java:initialization-failed` is now `Compilation:Java:C
 The console heading for a failed compiler start changes with it, from `Java compilation initialization error` to `Compiler initialization failed`.
 Java compiler diagnostics are named after the kind of diagnostic, for example `Cannot find symbol` instead of the javac code `compiler.err.cant.resolve.location`; the compiler's message stays in the problem's contextual label.
 
+Gradle's own validation problems use the predefined groups as well: problems about input, output, and caching annotations report into `Gradle > Plugin Validation`, problems about how build logic uses the build model, including types that cannot be part of a Declarative schema, into `Gradle > Build Logic`, and missing or unusable property values into `Gradle > Build Definition`.
+They are now named by their former display names, for example `validation:property-validation:value-not-set` is now `Gradle:Build Definition:Value not set`.
+See the [upgrade guide](userguide/upgrading_version_9.html#validation_problem_ids_moved_to_predefined_groups) for the complete list.
+
 See the [Predefined Problem Groups](userguide/reporting_problems.html#sec:predefined_problem_groups) section in the Gradle User Manual for more details.
 
 ### Build authoring improvements
