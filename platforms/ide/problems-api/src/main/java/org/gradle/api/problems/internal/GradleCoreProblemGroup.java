@@ -73,8 +73,6 @@ public abstract class GradleCoreProblemGroup {
 
     public interface ValidationProblemGroup {
         ProblemGroup thisGroup();
-        ProblemGroup property();
-        ProblemGroup type();
     }
 
     public interface DaemonToolchainProblemGroup {
@@ -90,8 +88,6 @@ public abstract class GradleCoreProblemGroup {
     private static class DefaultValidationProblemGroup implements ValidationProblemGroup {
 
         private final ProblemGroup thisGroup = ProblemGroup.create("validation", "Validation");
-        private final ProblemGroup property = ProblemGroup.create("property-validation", "Gradle property validation", thisGroup);
-        private final ProblemGroup type = ProblemGroup.create("type-validation", "Gradle type validation", thisGroup);
 
         private DefaultValidationProblemGroup() {
         }
@@ -99,16 +95,6 @@ public abstract class GradleCoreProblemGroup {
         @Override
         public ProblemGroup thisGroup() {
             return thisGroup;
-        }
-
-        @Override
-        public ProblemGroup property() {
-            return property;
-        }
-
-        @Override
-        public ProblemGroup type() {
-            return type;
         }
     }
 
