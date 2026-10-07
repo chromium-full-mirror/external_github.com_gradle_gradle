@@ -180,41 +180,20 @@ class ValidatePluginsPart1IntegrationTest extends AbstractIntegrationSpec implem
         assertValidationFailsWith(3)
 
         and:
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'dirProp\' is annotated with @InputDirectory but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'dirProp',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'fileProp\' is annotated with @InputFile but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'fileProp',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'filesProp\' is annotated with @InputFiles but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'filesProp',
-            ]
-            originLocations == []
+        // Received problems are sorted by id and then by label, so the properties are in label order
+        [dirProp: 'InputDirectory', fileProp: 'InputFile', filesProp: 'InputFiles'].eachWithIndex { property, annotation, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Missing normalization'
+                contextualLabel == "Type 'MyTask' property '$property' is annotated with @$annotation but missing a normalization strategy"
+                details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
+                solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
+                additionalData.asMap == [
+                    'typeName' : 'MyTask',
+                    'propertyName' : property,
+                ]
+                originLocations == []
+            }
         }
     }
 
@@ -733,111 +712,29 @@ class ValidatePluginsPart1IntegrationTest extends AbstractIntegrationSpec implem
         assertValidationFailsWith(7)
 
         and:
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'direct' has @$annotation annotation used on property of type 'ResolvedArtifactResult'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'direct',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'listPropertyInput' has @$annotation annotation used on property of type 'ListProperty<ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'listPropertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'mapPropertyInput' has @$annotation annotation used on property of type 'MapProperty<String, ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'mapPropertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'nestedBean.nestedInput' has @$annotation annotation used on property of type 'Property<ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'nestedBean',
-                'typeName' : 'MyTask',
-                'propertyName' : 'nestedInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'propertyInput' has @$annotation annotation used on property of type 'Property<ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'propertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(5)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'providerInput' has @$annotation annotation used on property of type 'Provider<ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'providerInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(6)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type'
-            contextualLabel == "Type 'MyTask' property 'setPropertyInput' has @$annotation annotation used on property of type 'SetProperty<ResolvedArtifactResult>'"
-            details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
-            solutions == [
-                'Extract artifact metadata and annotate with @Input',
-                'Extract artifact files and annotate with @InputFiles',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'setPropertyInput',
-            ]
-            originLocations == []
+        // Received problems are sorted by id and then by label, so the properties are in label order
+        [
+            ['direct', 'ResolvedArtifactResult', ['typeName': 'MyTask', 'propertyName': 'direct']],
+            ['listPropertyInput', 'ListProperty<ResolvedArtifactResult>', ['typeName': 'MyTask', 'propertyName': 'listPropertyInput']],
+            ['mapPropertyInput', 'MapProperty<String, ResolvedArtifactResult>', ['typeName': 'MyTask', 'propertyName': 'mapPropertyInput']],
+            ['nestedBean.nestedInput', 'Property<ResolvedArtifactResult>', ['parentPropertyName': 'nestedBean', 'typeName': 'MyTask', 'propertyName': 'nestedInput']],
+            ['propertyInput', 'Property<ResolvedArtifactResult>', ['typeName': 'MyTask', 'propertyName': 'propertyInput']],
+            ['providerInput', 'Provider<ResolvedArtifactResult>', ['typeName': 'MyTask', 'propertyName': 'providerInput']],
+            ['setPropertyInput', 'SetProperty<ResolvedArtifactResult>', ['typeName': 'MyTask', 'propertyName': 'setPropertyInput']],
+        ].eachWithIndex { row, index ->
+            def (path, type, expectedData) = row
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Unsupported value type'
+                contextualLabel == "Type 'MyTask' property '$path' has @$annotation annotation used on property of type '$type'"
+                details == "ResolvedArtifactResult is not supported on task properties annotated with @$annotation"
+                solutions == [
+                    'Extract artifact metadata and annotate with @Input',
+                    'Extract artifact files and annotate with @InputFiles',
+                ]
+                additionalData.asMap == expectedData
+                originLocations == []
+            }
         }
 
         where:
