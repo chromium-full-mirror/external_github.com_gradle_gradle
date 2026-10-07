@@ -81,90 +81,25 @@ class ValidatePluginsPart2IntegrationTest extends AbstractIntegrationSpec implem
         assertValidationFailsWith(7)
 
         and:
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'direct\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'direct',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'listPropertyInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'listPropertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'mapPropertyInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'mapPropertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'nestedBean.nestedInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'nestedBean',
-                'typeName' : 'MyTask',
-                'propertyName' : 'nestedInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'propertyInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'propertyInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(5)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'providerInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'providerInput',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(6)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'setPropertyInput\' has @Input annotation used on type \'java.net.URL\' or a property of this type'
-            details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
-            solutions == [ 'Use type \'java.net.URI\' instead' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'setPropertyInput',
-            ]
-            originLocations == []
+        // Received problems are sorted by id and then by label, so the properties are in label order
+        [
+            'direct': ['typeName': 'MyTask', 'propertyName': 'direct'],
+            'listPropertyInput': ['typeName': 'MyTask', 'propertyName': 'listPropertyInput'],
+            'mapPropertyInput': ['typeName': 'MyTask', 'propertyName': 'mapPropertyInput'],
+            'nestedBean.nestedInput': ['parentPropertyName': 'nestedBean', 'typeName': 'MyTask', 'propertyName': 'nestedInput'],
+            'propertyInput': ['typeName': 'MyTask', 'propertyName': 'propertyInput'],
+            'providerInput': ['typeName': 'MyTask', 'propertyName': 'providerInput'],
+            'setPropertyInput': ['typeName': 'MyTask', 'propertyName': 'setPropertyInput'],
+        ].eachWithIndex { path, expectedData, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Unsupported value type for @Input annotation'
+                contextualLabel == "Type 'MyTask' property '$path' has @Input annotation used on type 'java.net.URL' or a property of this type"
+                details == 'Type \'java.net.URL\' is not supported on properties annotated with @Input because Java Serialization can be inconsistent for this type'
+                solutions == [ 'Use type \'java.net.URI\' instead' ]
+                additionalData.asMap == expectedData
+                originLocations == []
+            }
         }
     }
 
@@ -234,105 +169,38 @@ class ValidatePluginsPart2IntegrationTest extends AbstractIntegrationSpec implem
         assertValidationFailsWith(7)
 
         and:
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'file\' has @Input annotation used on property of type \'File\''
-            details == 'A property of type \'File\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'file',
-            ]
-            originLocations == []
+        // Received problems are sorted by id and then by label, so the properties are in label order
+        [file: 'File', fileCollection: 'FileCollection', filePath: 'Path', fileTree: 'FileTree'].eachWithIndex { property, type, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
+                contextualLabel == "Type 'MyTask' property '$property' has @Input annotation used on property of type '$type'"
+                details == "A property of type '$type' annotated with @Input cannot determine how to interpret the file"
+                solutions == [
+                    'Annotate with @InputFile for regular files',
+                    'Annotate with @InputFiles for collections of files',
+                    'If you want to track the path, return File.absolutePath as a String and keep @Input',
+                ]
+                additionalData.asMap == [
+                    'typeName' : 'MyTask',
+                    'propertyName' : property,
+                ]
+                originLocations == []
+            }
         }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'fileCollection\' has @Input annotation used on property of type \'FileCollection\''
-            details == 'A property of type \'FileCollection\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'fileCollection',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'filePath\' has @Input annotation used on property of type \'Path\''
-            details == 'A property of type \'Path\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'filePath',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'fileTree\' has @Input annotation used on property of type \'FileTree\''
-            details == 'A property of type \'FileTree\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'fileTree',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'inputDirectory\' is annotated with @InputDirectory but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'inputDirectory',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(5)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'inputFile\' is annotated with @InputFile but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'inputFile',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(6)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing normalization'
-            contextualLabel == 'Type \'MyTask\' property \'inputFiles\' is annotated with @InputFiles but missing a normalization strategy'
-            details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
-            solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'inputFiles',
-            ]
-            originLocations == []
+        [inputDirectory: 'InputDirectory', inputFile: 'InputFile', inputFiles: 'InputFiles'].eachWithIndex { property, annotation, index ->
+            verifyAll(receivedProblem(4 + index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Missing normalization'
+                contextualLabel == "Type 'MyTask' property '$property' is annotated with @$annotation but missing a normalization strategy"
+                details == 'If you don\'t declare the normalization, outputs can\'t be re-used between machines or locations on the same machine, therefore caching efficiency drops significantly'
+                solutions == [ 'Declare the normalization strategy by annotating the property with either @PathSensitive, @Classpath or @CompileClasspath' ]
+                additionalData.asMap == [
+                    'typeName' : 'MyTask',
+                    'propertyName' : property,
+                ]
+                originLocations == []
+            }
         }
     }
 
@@ -442,134 +310,16 @@ class ValidatePluginsPart2IntegrationTest extends AbstractIntegrationSpec implem
         assertValidationFailsWith(8)
 
         and:
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'doubleIterableOptions.*.*.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'doubleIterableOptions.*.*',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'iterableMappedOptions.*.<key>.*.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'iterableMappedOptions.*.<key>.*',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'iterableOptions.*.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'iterableOptions.*',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'mappedOptions.<key>.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'mappedOptions.<key>',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'namedIterable.<name>.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'namedIterable.<name>',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(5)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'options.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'options',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(6)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'optionsList.*.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'optionsList.*',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
-        verifyAll(receivedProblem(7)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'providedOptions.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'parentPropertyName' : 'providedOptions',
-                'typeName' : 'MyTask',
-                'propertyName' : 'notAnnotated',
-            ]
-            originLocations == []
-        }
+        verifyMissingAnnotationProblems('notAnnotated', [
+            'doubleIterableOptions.*.*',
+            'iterableMappedOptions.*.<key>.*',
+            'iterableOptions.*',
+            'mappedOptions.<key>',
+            'namedIterable.<name>',
+            'options',
+            'optionsList.*',
+            'providedOptions',
+        ])
     }
 
     @Issue("https://github.com/gradle/gradle/issues/23045")
@@ -933,6 +683,31 @@ class ValidatePluginsPart2IntegrationTest extends AbstractIntegrationSpec implem
             fqid == 'Gradle:Build Definition:Running task ValidatePlugins with an unsupported Java Toolchain'
             contextualLabel == "Running task ValidatePlugins with Java Toolchain lower than ${SupportedJavaVersions.MINIMUM_DAEMON_JAVA_VERSION} is not supported."
             definition.documentationLink.url.endsWith("/userguide/upgrading_version_9.html#validate_plugins_java_version")
+        }
+    }
+
+    /**
+     * Verifies that the received problems are exactly one missing-annotation problem per parent property, in the given order.
+     * Received problems are sorted by id and then by label, so the parents must be in label order.
+     */
+    private void verifyMissingAnnotationProblems(String property, List<String> parentProperties) {
+        parentProperties.eachWithIndex { parent, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Missing annotation'
+                contextualLabel == "Type 'MyTask' property '${parent}.${property}' is missing an input or output annotation"
+                details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
+                solutions == [
+                    'Add an input or output annotation',
+                    'Mark it as @Internal',
+                ]
+                additionalData.asMap == [
+                    'parentPropertyName' : parent,
+                    'typeName' : 'MyTask',
+                    'propertyName' : property,
+                ]
+                originLocations == []
+            }
         }
     }
 }
