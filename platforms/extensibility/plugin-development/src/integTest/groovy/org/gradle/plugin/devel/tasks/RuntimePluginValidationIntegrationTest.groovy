@@ -51,91 +51,7 @@ class RuntimePluginValidationIntegrationTest extends AbstractIntegrationSpec imp
 
         expect:
         assertValidationFailsWith(5)
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'tree.left.left.nonAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'nonAnnotated',
-                'parentPropertyName' : 'tree.left.left',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'tree.left.nonAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'nonAnnotated',
-                'parentPropertyName' : 'tree.left',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'tree.left.right.nonAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'nonAnnotated',
-                'parentPropertyName' : 'tree.left.right',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'tree.nonAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'nonAnnotated',
-                'parentPropertyName' : 'tree',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'tree.right.nonAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'nonAnnotated',
-                'parentPropertyName' : 'tree.right',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
+        verifyMissingAnnotationProblems('nonAnnotated', ['tree.left.left', 'tree.left', 'tree.left.right', 'tree', 'tree.right'])
     }
 
     def "detects problems with file inputs"() {
@@ -201,73 +117,25 @@ class RuntimePluginValidationIntegrationTest extends AbstractIntegrationSpec imp
         executer.withArgument("-Dorg.gradle.internal.max.validation.errors=10")
         // Pre-Validate errors halt execution before further problems are detected
         assertValidationFailsWith(4)
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'file\' has @Input annotation used on property of type \'File\''
-            details == 'A property of type \'File\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'file',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'fileCollection\' has @Input annotation used on property of type \'FileCollection\''
-            details == 'A property of type \'FileCollection\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'fileCollection',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'filePath\' has @Input annotation used on property of type \'Path\''
-            details == 'A property of type \'Path\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'filePath',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
-            contextualLabel == 'Type \'MyTask\' property \'fileTree\' has @Input annotation used on property of type \'FileTree\''
-            details == 'A property of type \'FileTree\' annotated with @Input cannot determine how to interpret the file'
-            solutions == [
-                'Annotate with @InputFile for regular files',
-                'Annotate with @InputFiles for collections of files',
-                'If you want to track the path, return File.absolutePath as a String and keep @Input',
-            ]
-            additionalData.asMap == [
-                'typeName' : 'MyTask',
-                'propertyName' : 'fileTree',
-            ]
-            originLocations == []
-            contextualLocations == []
+        // Received problems are sorted by id and then by label, so the properties are in label order
+        [file: 'File', fileCollection: 'FileCollection', filePath: 'Path', fileTree: 'FileTree'].eachWithIndex { property, type, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Incorrect use of @Input annotation'
+                contextualLabel == "Type 'MyTask' property '$property' has @Input annotation used on property of type '$type'"
+                details == "A property of type '$type' annotated with @Input cannot determine how to interpret the file"
+                solutions == [
+                    'Annotate with @InputFile for regular files',
+                    'Annotate with @InputFiles for collections of files',
+                    'If you want to track the path, return File.absolutePath as a String and keep @Input',
+                ]
+                additionalData.asMap == [
+                    'typeName' : 'MyTask',
+                    'propertyName' : property,
+                ]
+                originLocations == []
+                contextualLocations == []
+            }
         }
     }
 
@@ -381,142 +249,16 @@ class RuntimePluginValidationIntegrationTest extends AbstractIntegrationSpec imp
         expect:
         executer.withArgument("-Dorg.gradle.internal.max.validation.errors=10")
         assertValidationFailsWith(8)
-        verifyAll(receivedProblem(0)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'doubleIterableOptions.$0.$0.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'doubleIterableOptions.$0.$0',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(1)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'iterableMappedOptions.$0.alma.$0.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'iterableMappedOptions.$0.alma.$0',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(2)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'iterableOptions.$0.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'iterableOptions.$0',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(3)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'mappedOptions.alma.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'mappedOptions.alma',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(4)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'namedIterable.tibor$0.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'namedIterable.tibor$0',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(5)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'options.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'options',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(6)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'optionsList.$0.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'optionsList.$0',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
-        verifyAll(receivedProblem(7)) {
-            severity == Severity.ERROR
-            fqid == 'Gradle:Plugin Validation:Missing annotation'
-            contextualLabel == 'Type \'MyTask\' property \'providedOptions.notAnnotated\' is missing an input or output annotation'
-            details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
-            solutions == [
-                'Add an input or output annotation',
-                'Mark it as @Internal',
-            ]
-            additionalData.asMap == [
-                'propertyName' : 'notAnnotated',
-                'parentPropertyName' : 'providedOptions',
-                'typeName' : 'MyTask',
-            ]
-            originLocations == []
-            contextualLocations == []
-        }
+        verifyMissingAnnotationProblems('notAnnotated', [
+            'doubleIterableOptions.$0.$0',
+            'iterableMappedOptions.$0.alma.$0',
+            'iterableOptions.$0',
+            'mappedOptions.alma',
+            'namedIterable.tibor$0',
+            'options',
+            'optionsList.$0',
+            'providedOptions',
+        ])
     }
 
     @Issue("https://github.com/gradle/gradle/issues/24444")
@@ -566,6 +308,32 @@ class RuntimePluginValidationIntegrationTest extends AbstractIntegrationSpec imp
                 'propertyName': 'message',
             ]
             definition.documentationLink.url == "https://docs.gradle.org/${distribution.version.version}/userguide/validation_problems.html#value_not_set"
+        }
+    }
+
+    /**
+     * Verifies that the received problems are exactly one missing-annotation problem per parent property, in the given order.
+     * Received problems are sorted by id and then by label, so the parents must be in label order.
+     */
+    private void verifyMissingAnnotationProblems(String property, List<String> parentProperties) {
+        parentProperties.eachWithIndex { parent, index ->
+            verifyAll(receivedProblem(index)) {
+                severity == Severity.ERROR
+                fqid == 'Gradle:Plugin Validation:Missing annotation'
+                contextualLabel == "Type 'MyTask' property '${parent}.${property}' is missing an input or output annotation"
+                details == 'Properties must be annotated so that Gradle knows how to handle them during up-to-date checking'
+                solutions == [
+                    'Add an input or output annotation',
+                    'Mark it as @Internal',
+                ]
+                additionalData.asMap == [
+                    'propertyName' : property,
+                    'parentPropertyName' : parent,
+                    'typeName' : 'MyTask',
+                ]
+                originLocations == []
+                contextualLocations == []
+            }
         }
     }
 }
