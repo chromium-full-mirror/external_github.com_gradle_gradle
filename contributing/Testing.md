@@ -73,23 +73,25 @@ First add the mirror to the `MirroredRepository` enum in that file, so CI can mi
 Then register the extra repository in `EXTRA_REPOSITORIES`:
 
 ```groovy
-new ExtraRepository(MirroredRepository.KOTLIN_DEV.name, MirroredRepository.KOTLIN_DEV.mirrorUrl, [/org\.jetbrains\.kotlin(\..+)?/], {
+new ExtraRepository(MirroredRepository.KOTLIN_DEV.name, MirroredRepository.KOTLIN_DEV.mirrorUrl, [/org\.jetbrains\.kotlin(\..+)?/], ~/(?i)kotlin/, {
     new KotlinGradlePluginVersions().latests.any { KotlinGradlePluginVersions.isKotlinDevVersion(it) }
 })
 ```
 
 The group regexes become a content filter, so the repository is only consulted for the dependencies it serves.
-The closure is optional and decides whether the repository is used at all; without it the repository is always added.
+The pattern marks the builds that need the repository: those whose scripts or version catalogs contain a match.
+The closure decides whether the repository is used at all.
+Both are optional; without them every build gets the repository.
 
 A registered repository reaches test builds two ways:
 
 - The repository blocks this class produces, such as `mavenCentralRepository()` and `extraRepositoriesDefinition()`, and the `repositoriesBlock` of the Kotlin DSL test fixtures.
   Builds declaring their repositories with these get the extra ones without further changes, whether they run through an executer or the Tooling API.
-- An init script, passed to every smoke test build, and to the builds of an executer configured with `executer.withExtraRepositories()`.
+- An init script, passed to every smoke test build, and to each build started through a `GradleExecuter` whose scripts or version catalogs match the pattern.
   It adds the repository to the settings `pluginManagement` and `dependencyResolutionManagement` blocks, and to buildscript and project repositories that already contain one.
   Adding a repository to a project that declares none would stop that project from using the settings repositories.
-  It is opt-in because the build sees the script, e.g. as build operations, which breaks tests asserting on those.
-  Use it for a test whose build needs the repository but declares its repositories some other way, e.g. a bare `mavenCentral()` or the implicit Plugin Portal.
+  It is limited to the builds that need it because the build sees the script, e.g. as build operations, which breaks tests asserting on those.
+  A test whose build needs the repository without mentioning a match can call `executer.withExtraRepositories()`.
 
 In a Tooling API test, declare repositories with the block helpers, `gradlePluginAndMavenCentralRepositories()` or `mavenCentralRepository()`, which include the extra ones.
 The single-repository helpers, `mavenCentralRepositoryDefinition()` and the like, name one repository each, so a block built out of them misses the extra repositories.

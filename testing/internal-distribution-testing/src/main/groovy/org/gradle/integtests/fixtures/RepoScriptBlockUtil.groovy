@@ -20,6 +20,8 @@ import groovy.transform.CompileStatic
 import org.gradle.integtests.fixtures.versions.KotlinGradlePluginVersions
 import org.gradle.test.fixtures.dsl.GradleDsl
 
+import java.util.regex.Pattern
+
 import static org.gradle.api.artifacts.ArtifactRepositoryContainer.GOOGLE_URL
 import static org.gradle.api.artifacts.ArtifactRepositoryContainer.MAVEN_CENTRAL_URL
 import static org.gradle.test.fixtures.dsl.GradleDsl.GROOVY
@@ -92,12 +94,18 @@ class RepoScriptBlockUtil {
         final String name
         final String url
         final List<String> groupRegexes
+        /**
+         * Text in a build's scripts or version catalogs that shows the build needs this repository.
+         * Without it, every build gets the repository.
+         */
+        final Pattern neededWhenBuildMentions
         private final Closure<Boolean> active
 
-        ExtraRepository(String name, String url, List<String> groupRegexes, Closure<Boolean> active = { true }) {
+        ExtraRepository(String name, String url, List<String> groupRegexes, Pattern neededWhenBuildMentions = null, Closure<Boolean> active = { true }) {
             this.name = name
             this.url = url
             this.groupRegexes = groupRegexes
+            this.neededWhenBuildMentions = neededWhenBuildMentions
             this.active = active
         }
 
@@ -111,13 +119,16 @@ class RepoScriptBlockUtil {
      *
      * Active ones are included in the repository blocks produced by this class (see {@link #extraRepositoriesDefinition}),
      * and injected by an init script (see {@link #extraRepositoriesInitScript}) into every smoke test build and into
-     * the builds of a {@code GradleExecuter} that asks for them with {@code withExtraRepositories()}.
+     * the builds of a {@code GradleExecuter} that need them (see {@link #extraRepositoriesNeededBy}).
      */
     private static final List<ExtraRepository> EXTRA_REPOSITORIES = [
-        new ExtraRepository(MirroredRepository.KOTLIN_DEV.name, MirroredRepository.KOTLIN_DEV.mirrorUrl, [/org\.jetbrains\.kotlin(\..+)?/], {
+        new ExtraRepository(MirroredRepository.KOTLIN_DEV.name, MirroredRepository.KOTLIN_DEV.mirrorUrl, [/org\.jetbrains\.kotlin(\..+)?/], ~/(?i)kotlin/, {
             new KotlinGradlePluginVersions().latests.any { KotlinGradlePluginVersions.isKotlinDevVersion(it) }
         })
     ]
+
+    private static final List<String> BUILD_FILE_SUFFIXES = [".gradle", ".gradle.kts", ".gradle.dcl", ".toml"]
+    private static final Set<String> NON_BUILD_DIRECTORIES = ["build", ".gradle", ".kotlin", "node_modules"] as Set
 
     @Lazy
     static List<ExtraRepository> activeExtraRepositories = EXTRA_REPOSITORIES.findAll { it.active }.asImmutable()
@@ -227,6 +238,45 @@ class RepoScriptBlockUtil {
     /**
      * The init script adding the active extra repositories to a build, or {@code null} when there is none.
      */
+    /**
+     * Whether a build in the given directory needs one of the active extra repositories, judging by its scripts and version catalogs.
+     * The init script adding them is visible to the build, e.g. as build operations, so it is only added where it is needed.
+     */
+    static boolean extraRepositoriesNeededBy(File buildDirectory, Collection<File> excludedDirectories) {
+        if (activeExtraRepositories.any { it.neededWhenBuildMentions == null }) {
+            return true
+        }
+        List<Pattern> patterns = activeExtraRepositories.collect { it.neededWhenBuildMentions }
+        // The declarations of the extra repositories that this class writes into build scripts do not count
+        List<String> ownDeclarations = activeExtraRepositories.collectMany { repository ->
+            [repository.name] + repository.groupRegexes.collectMany { [escapeBackslashes(it), it] }
+        }
+        return !patterns.empty && anyBuildFileMentions(buildDirectory, patterns, ownDeclarations, excludedDirectories.collect { it.absoluteFile } as Set<File>)
+    }
+
+    private static boolean anyBuildFileMentions(File directory, List<Pattern> patterns, List<String> ignoredText, Set<File> excludedDirectories) {
+        if (excludedDirectories.contains(directory.absoluteFile)) {
+            return false
+        }
+        File[] children = directory.listFiles()
+        if (children == null) {
+            return false
+        }
+        for (File child : children) {
+            if (child.directory) {
+                if (!NON_BUILD_DIRECTORIES.contains(child.name) && anyBuildFileMentions(child, patterns, ignoredText, excludedDirectories)) {
+                    return true
+                }
+            } else if (BUILD_FILE_SUFFIXES.any { child.name.endsWith(it) }) {
+                String text = ignoredText.inject(child.text) { String result, String ignored -> result.replace(ignored, "") }
+                if (patterns.any { it.matcher(text).find() }) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     static synchronized File extraRepositoriesInitScriptFile() {
         if (activeExtraRepositories.empty) {
             return null
