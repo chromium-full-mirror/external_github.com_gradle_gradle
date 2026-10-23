@@ -45,6 +45,10 @@ public class DefaultWorkInProgressFormatter {
             builder.insert(0, " > ").insert(3, message);
         }
         if (builder.length() > 0) {
+            if (op.showsWorkActions()) {
+                int completed = op.getCompletedWorkActions();
+                builder.append(" > ").append(completed).append(completed == 1 ? " work action completed" : " work actions completed");
+            }
             builder.delete(0, 1);
         } else {
             return IDLE_SPANS;
