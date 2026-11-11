@@ -1,3 +1,12 @@
 {
-    "acceptedApiChanges": []
+    "acceptedApiChanges": [
+        {
+            "type": "org.gradle.api.tasks.testing.TestFailure",
+            "member": "Method org.gradle.api.tasks.testing.TestFailure.getRawFailure()",
+            "acceptation": "Raw failures are not available for failures reconstructed from stored test results, e.g. when rendering custom test report entries",
+            "changes": [
+                "From non-null returning to null returning breaking change"
+            ]
+        }
+    ]
 }

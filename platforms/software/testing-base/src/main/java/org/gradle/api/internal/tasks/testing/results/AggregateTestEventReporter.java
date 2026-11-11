@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class AggregateTestEventReporter implements ProblemReporter, TestExecutio
         // Generate a consistent ordering by sorting the Paths
         List<Path> sortedResults = new ArrayList<>(results.values());
         sortedResults.sort(Comparator.naturalOrder());
-        return objectFactory.newInstance(GenericHtmlTestReportGenerator.class, reportDirectory).generate(sortedResults);
+        return objectFactory.newInstance(GenericHtmlTestReportGenerator.class, reportDirectory, Collections.emptyList()).generate(sortedResults);
     }
 
     /**

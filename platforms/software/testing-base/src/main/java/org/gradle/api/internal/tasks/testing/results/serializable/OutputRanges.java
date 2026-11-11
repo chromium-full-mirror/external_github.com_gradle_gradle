@@ -48,10 +48,12 @@ public final class OutputRanges {
             if ((destinations & DESTINATION_STDERR) != 0) {
                 startStderr = decoder.readSmallLong();
             }
+            long eventCount = 0;
             if (destinations != 0) {
                 end = decoder.readSmallLong();
+                eventCount = decoder.readSmallLong();
             }
-            return OutputRanges.of(startStdout, startStderr, end);
+            return OutputRanges.of(startStdout, startStderr, end, eventCount);
         }
 
         @Override
@@ -73,6 +75,7 @@ public final class OutputRanges {
             }
             if (destinations != 0) {
                 encoder.writeSmallLong(value.end);
+                encoder.writeSmallLong(value.eventCount);
             }
         }
     };
@@ -90,32 +93,60 @@ public final class OutputRanges {
         }
     }
 
-    private static final OutputRanges NO_OUTPUT_RANGES = new OutputRanges(NO_OUTPUT, NO_OUTPUT, NO_OUTPUT);
+    private static final OutputRanges NO_OUTPUT_RANGES = new OutputRanges(NO_OUTPUT, NO_OUTPUT, NO_OUTPUT, 0);
 
     public static OutputRanges none() {
         return NO_OUTPUT_RANGES;
     }
 
-    public static OutputRanges of(long startStdout, long startStderr, long end) {
+    public static OutputRanges of(long startStdout, long startStderr, long end, long eventCount) {
         validateRange("stdout", startStdout, end);
         validateRange("stderr", startStderr, end);
         if (startStdout == NO_OUTPUT && startStderr == NO_OUTPUT) {
             if (end != NO_OUTPUT) {
                 throw new IllegalStateException("Output range end " + end + " specified without any output range starts");
             }
+            if (eventCount != 0) {
+                throw new IllegalStateException("Output event count " + eventCount + " specified without any output range starts");
+            }
             return NO_OUTPUT_RANGES;
         }
-        return new OutputRanges(startStdout, startStderr, end);
+        if (eventCount <= 0) {
+            throw new IllegalStateException("Invalid output event count " + eventCount + " for non-empty output ranges");
+        }
+        return new OutputRanges(startStdout, startStderr, end, eventCount);
     }
 
     final long startStdout;
     final long startStderr;
     final long end;
+    final long eventCount;
 
-    private OutputRanges(long startStdout, long startStderr, long end) {
+    private OutputRanges(long startStdout, long startStderr, long end, long eventCount) {
         this.startStdout = startStdout;
         this.startStderr = startStderr;
         this.end = end;
+        this.eventCount = eventCount;
+    }
+
+    /**
+     * The start of the first output event, regardless of destination.
+     */
+    long getStart() {
+        if (startStdout == NO_OUTPUT) {
+            return startStderr;
+        }
+        if (startStderr == NO_OUTPUT) {
+            return startStdout;
+        }
+        return Math.min(startStdout, startStderr);
+    }
+
+    /**
+     * The number of output events for this entry, across all destinations.
+     */
+    public long getEventCount() {
+        return eventCount;
     }
 
     public boolean hasOutput() {

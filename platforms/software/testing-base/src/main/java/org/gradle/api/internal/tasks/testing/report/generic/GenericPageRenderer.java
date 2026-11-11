@@ -15,15 +15,18 @@
  */
 package org.gradle.api.internal.tasks.testing.report.generic;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 import com.google.common.net.UrlEscapers;
 import org.gradle.api.internal.tasks.testing.results.serializable.OutputEntry;
 import org.gradle.api.internal.tasks.testing.results.serializable.SerializableTestResult;
 import org.gradle.api.internal.tasks.testing.results.serializable.TestOutputReader;
+import org.gradle.api.tasks.testing.HtmlEmittingTestReportEntryRenderer;
 import org.gradle.api.tasks.testing.TestFileAttachmentDataEvent;
 import org.gradle.api.tasks.testing.TestKeyValueDataEvent;
 import org.gradle.api.tasks.testing.TestOutputEvent;
+import org.gradle.api.tasks.testing.TestReportEntryRenderingContext;
 import org.gradle.internal.html.SimpleHtmlWriter;
 import org.gradle.reporting.ReportRenderer;
 import org.gradle.reporting.TabbedPageRenderer;
@@ -36,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 final class GenericPageRenderer extends TabbedPageRenderer<TestTreeModel> {
     private static final URL STYLE_URL = Resources.getResource(GenericPageRenderer.class, "style.css");
@@ -65,15 +69,21 @@ final class GenericPageRenderer extends TabbedPageRenderer<TestTreeModel> {
     private final boolean shrink;
     private final List<TestOutputReader> outputReaders;
     private final List<String> rootDisplayNames;
+    private final List<HtmlEmittingTestReportEntryRenderer> entryRenderers;
+    private final StreamingHtmlEntryWriter entryWriter;
 
     GenericPageRenderer(
         boolean shrink,
         List<TestOutputReader> outputReaders,
-        List<String> rootDisplayNames
+        List<String> rootDisplayNames,
+        List<HtmlEmittingTestReportEntryRenderer> entryRenderers,
+        StreamingHtmlEntryWriter entryWriter
     ) {
         this.shrink = shrink;
         this.outputReaders = outputReaders;
         this.rootDisplayNames = rootDisplayNames;
+        this.entryRenderers = entryRenderers;
+        this.entryWriter = entryWriter;
     }
 
     private void renderBreadcrumbs(SimpleHtmlWriter htmlWriter) throws IOException {
@@ -179,6 +189,18 @@ final class GenericPageRenderer extends TabbedPageRenderer<TestTreeModel> {
                 }
                 if (Iterables.any(info.getMetadatas(), event -> event instanceof TestFileAttachmentDataEvent)) {
                     perRootInfoTabsRenderer.add("attachments", new PerRootTabRenderer.ForFileAttachments(rootIndex, perRootInfoIndex));
+                }
+                if (!entryRenderers.isEmpty()) {
+                    // Built lazily when the first custom tab is rendered, and shared by all renderers of this run
+                    Supplier<TestReportEntryRenderingContext> context = Suppliers.memoize(
+                        () -> DefaultTestReportEntryRenderingContext.create(info, PerRootTabRenderer.ForSummary.getResultType(info), outputReader)
+                    );
+                    for (HtmlEmittingTestReportEntryRenderer entryRenderer : entryRenderers) {
+                        perRootInfoTabsRenderer.add(
+                            entryRenderer.getTabName(),
+                            new PerRootTabRenderer.ForCustomEntry(rootIndex, perRootInfoIndex, entryRenderer, context, entryWriter)
+                        );
+                    }
                 }
 
                 perRootInfoTabsRenderers.add(perRootInfoTabsRenderer);

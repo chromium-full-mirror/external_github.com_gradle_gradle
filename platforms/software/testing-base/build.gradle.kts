@@ -45,6 +45,8 @@ dependencies {
 
     implementation(libs.commonsLang)
     implementation(libs.commonsIo)
+    implementation(libs.jctools)
+    implementation(libs.jsoup)
     implementation(libs.slf4jApi)
 
     testImplementation(projects.fileCollections)

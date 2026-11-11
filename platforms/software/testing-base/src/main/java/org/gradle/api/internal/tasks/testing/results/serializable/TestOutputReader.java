@@ -26,15 +26,24 @@ import org.gradle.internal.io.IoConsumer;
 import org.gradle.internal.serialize.Decoder;
 import org.gradle.internal.serialize.Serializer;
 import org.gradle.internal.serialize.kryo.KryoBackedDecoder;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.AbstractCollection;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.LongPredicate;
@@ -86,6 +95,115 @@ public final class TestOutputReader implements Closeable {
         useTestOutputEventsWithInfo(destination, eventConsumer, info.start, info.end, ids::contains);
     }
 
+    /**
+     * Returns all output events of the given entries, regardless of destination, in the order they were written.
+     *
+     * <p>
+     * The events are read lazily from disk in batches on iteration, so only a single batch is held in memory at a time.
+     * The returned collection is only usable while this reader is open.
+     * </p>
+     */
+    public Collection<TestOutputEvent> getAllTestOutputEvents(Iterable<OutputEntry> entries) {
+        long start = OutputRanges.NO_OUTPUT;
+        long end = OutputRanges.NO_OUTPUT;
+        long eventCount = 0;
+        ImmutableSet.Builder<Long> idsBuilder = ImmutableSet.builder();
+        for (OutputEntry entry : entries) {
+            OutputRanges ranges = entry.getOutputRanges();
+            if (!ranges.hasOutput()) {
+                continue;
+            }
+            long rangesStart = ranges.getStart();
+            if (start == OutputRanges.NO_OUTPUT || rangesStart < start) {
+                start = rangesStart;
+            }
+            if (end == OutputRanges.NO_OUTPUT || ranges.end > end) {
+                end = ranges.end;
+            }
+            eventCount += ranges.getEventCount();
+            idsBuilder.add(entry.getId());
+        }
+        if (eventCount == 0) {
+            return Collections.emptyList();
+        }
+        return new LazyOutputEvents(start, end, idsBuilder.build(), (int) Math.min(eventCount, Integer.MAX_VALUE));
+    }
+
+    private final class LazyOutputEvents extends AbstractCollection<TestOutputEvent> {
+        private final long start;
+        private final long end;
+        private final ImmutableSet<Long> ids;
+        private final int size;
+
+        private LazyOutputEvents(long start, long end, ImmutableSet<Long> ids, int size) {
+            this.start = start;
+            this.end = end;
+            this.ids = ids;
+            this.size = size;
+        }
+
+        @Override
+        public Iterator<TestOutputEvent> iterator() {
+            return new BatchingOutputEventIterator(start, end, ids::contains);
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
+    }
+
+    /**
+     * Reads output events in batches, only holding a channel while reading a batch, so abandoning iteration doesn't leak resources.
+     */
+    private final class BatchingOutputEventIterator implements Iterator<TestOutputEvent> {
+        private static final int BATCH_SIZE = 256;
+
+        private final long end;
+        private final LongPredicate matchesId;
+        private final Deque<TestOutputEvent> batch = new ArrayDeque<>(BATCH_SIZE);
+        private long nextPosition;
+
+        private BatchingOutputEventIterator(long start, long end, LongPredicate matchesId) {
+            this.end = end;
+            this.matchesId = matchesId;
+            this.nextPosition = start;
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (batch.isEmpty() && nextPosition < end) {
+                try {
+                    readBatch();
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+            return !batch.isEmpty();
+        }
+
+        @Override
+        public TestOutputEvent next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return batch.removeFirst();
+        }
+
+        private void readBatch() throws IOException {
+            SeekableByteChannel channel = requestChannel();
+            try {
+                channel.position(nextPosition);
+                InputStream stream = ByteStreams.limit(Channels.newInputStream(channel), end - nextPosition);
+                KryoBackedDecoder decoder = new KryoBackedDecoder(stream);
+                boolean reachedEnd = !iterateEvents(decoder, matchesId, null, batch::addLast, BATCH_SIZE);
+                nextPosition = reachedEnd ? end : nextPosition + decoder.getReadPosition();
+            } finally {
+                returnChannel(channel);
+            }
+        }
+    }
+
     private static final class CombinedEntryInfo {
         long start = OutputRanges.NO_OUTPUT;
         long end = OutputRanges.NO_OUTPUT;
@@ -123,7 +241,7 @@ public final class TestOutputReader implements Closeable {
             InputStream stream = ByteStreams.limit(Channels.newInputStream(channel), end - start);
             Decoder decoder = new KryoBackedDecoder(stream);
 
-            iterateEvents(decoder, matchesId, destination, eventConsumer);
+            iterateEvents(decoder, matchesId, destination, eventConsumer, Integer.MAX_VALUE);
         } finally {
             returnChannel(channel);
         }
@@ -140,19 +258,30 @@ public final class TestOutputReader implements Closeable {
         }
     }
 
-    private void iterateEvents(
+    /**
+     * Passes matching events to the consumer, until either EOF or {@code maxEvents} events have been consumed.
+     *
+     * @param destination the destination to filter by, or {@code null} for all destinations
+     * @return {@code true} if stopped because {@code maxEvents} was reached, {@code false} if EOF was reached
+     */
+    private boolean iterateEvents(
         Decoder decoder,
         LongPredicate matchesId,
-        TestOutputEvent.Destination destination,
-        IoConsumer<TestOutputEvent> eventConsumer
+        TestOutputEvent.@Nullable Destination destination,
+        IoConsumer<TestOutputEvent> eventConsumer,
+        int maxEvents
     ) throws IOException {
+        int consumed = 0;
         while (true) {
+            if (consumed >= maxEvents) {
+                return true;
+            }
             long id;
             try {
                 id = decoder.readLong();
             } catch (EOFException e) {
                 // Expected EOF
-                break;
+                return false;
             }
             TestOutputEvent event;
             try {
@@ -167,10 +296,11 @@ public final class TestOutputReader implements Closeable {
             if (!matchesId.test(id)) {
                 continue;
             }
-            if (event.getDestination() != destination) {
+            if (destination != null && event.getDestination() != destination) {
                 continue;
             }
             eventConsumer.accept(event);
+            consumed++;
         }
     }
 

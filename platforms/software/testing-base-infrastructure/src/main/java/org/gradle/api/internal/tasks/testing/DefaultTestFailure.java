@@ -29,18 +29,20 @@ import java.util.List;
 
 public class DefaultTestFailure extends TestFailure {
 
+    @Nullable
     private final Throwable rawFailure;
     private final TestFailureDetails details;
 
     private final List<TestFailure> causes;
 
-    public DefaultTestFailure(Throwable rawFailure, TestFailureDetails details, List<TestFailure> causes) {
+    public DefaultTestFailure(@Nullable Throwable rawFailure, TestFailureDetails details, List<TestFailure> causes) {
         this.rawFailure = rawFailure;
         this.details = details;
         this.causes = causes;
     }
 
     @Override
+    @Nullable
     public Throwable getRawFailure() {
         return rawFailure;
     }
@@ -58,7 +60,7 @@ public class DefaultTestFailure extends TestFailure {
     @Override
     public String toString() {
         return "test failure {" +
-            "rawFailure=" + rawFailure.getClass().getCanonicalName() +
+            "rawFailure=" + (rawFailure == null ? null : rawFailure.getClass().getCanonicalName()) +
             ", causes=" + causes.size() +
             ", details=" + details +
             '}';

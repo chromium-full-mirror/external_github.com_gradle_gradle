@@ -551,6 +551,197 @@ class TestEventReporterHtmlReportIntegrationTest extends AbstractIntegrationSpec
         }
     }
 
+    def "HTML report contains custom entries from renderers"() {
+        given:
+        buildFile << rendererTask("""
+            class CustomRenderer implements HtmlEmittingTestReportEntryRenderer {
+                String getTabName() { "Custom" }
+
+                void render(TestReportEntryRenderingContext context, Appendable htmlOut) {
+                    def iterated = 0
+                    for (def event : context.outputEvents) {
+                        iterated++
+                    }
+                    def result = context.testResult
+                    htmlOut.append("<p class='name'>").append(context.testDescriptor.displayName).append("</p>")
+                    htmlOut.append("<p class='composite'>").append(String.valueOf(context.testDescriptor.composite)).append("</p>")
+                    htmlOut.append("<p class='outputs'>").append("\${context.outputEvents.size()}/\${iterated}").append("</p>")
+                    htmlOut.append("<p class='result'>").append(result.resultType.name()).append("</p>")
+                    htmlOut.append("<p class='failures'>").append(result.failures.collect { it.details.message }.join(",")).append("</p>")
+                    htmlOut.append("<p class='exceptions'>").append(String.valueOf(result.exceptions.size())).append("</p>")
+                    htmlOut.append("<p class='unclosed'>unclosed")
+                }
+            }
+        """, "new CustomRenderer()")
+
+        when:
+        fails("custom")
+
+        then:
+        def results = resultsFor("tests/custom")
+
+        results.getAllTabNames("suite/withOutput.html").contains("Custom")
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.name") { assert it*.text() == ["withOutput"] }
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.composite") { assert it*.text() == ["false"] }
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.outputs") { assert it*.text() == ["3/3"] }
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.result") { assert it*.text() == ["SUCCESS"] }
+        // The unclosed element is closed within the entry, so it doesn't swallow the rest of the page
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.unclosed") { assert it*.text() == ["unclosed"] }
+        results.assertHtml("suite/withOutput.html", "pre") { assert it.every { pre -> pre.parents().every { !it.hasClass("unclosed") } } }
+
+        results.assertHtml("suite/failing.html", ".custom-entry > p.result") { assert it*.text() == ["FAILURE"] }
+        results.assertHtml("suite/failing.html", ".custom-entry > p.failures") { assert it*.text() == ["failure message"] }
+        results.assertHtml("suite/failing.html", ".custom-entry > p.exceptions") { assert it*.text() == ["0"] }
+
+        // Containers get entries too
+        results.assertHtml("suite/index.html", ".custom-entry > p.name") { assert it*.text() == ["suite"] }
+        results.assertHtml("suite/index.html", ".custom-entry > p.composite") { assert it*.text() == ["true"] }
+
+        // Aggregate reports don't have custom entries
+        !aggregateResults().getAllTabNames("index.html").contains("Custom")
+    }
+
+    def "HTML report contains tab for renderer that writes nothing"() {
+        given:
+        buildFile << rendererTask("""
+            class EmptyRenderer implements HtmlEmittingTestReportEntryRenderer {
+                String getTabName() { "Empty" }
+
+                void render(TestReportEntryRenderingContext context, Appendable htmlOut) {
+                }
+            }
+        """, "new EmptyRenderer()")
+
+        when:
+        fails("custom")
+
+        then:
+        def results = resultsFor("tests/custom")
+        results.getAllTabNames("suite/withOutput.html").contains("Empty")
+        results.assertHtml("suite/withOutput.html", ".custom-entry") { assert it.every { it.childNodes().isEmpty() } }
+    }
+
+    def "HTML report streams large custom entries with text and comments between elements"() {
+        given:
+        buildFile << rendererTask("""
+            class LargeRenderer implements HtmlEmittingTestReportEntryRenderer {
+                String getTabName() { "Large" }
+
+                void render(TestReportEntryRenderingContext context, Appendable htmlOut) {
+                    htmlOut.append("before")
+                    for (int i = 0; i < 10000; i++) {
+                        htmlOut.append("<!-- comment --><p class='line'>line ").append(String.valueOf(i)).append("</p>")
+                        htmlOut.append('|')
+                    }
+                    htmlOut.append("after")
+                }
+            }
+        """, "new LargeRenderer()")
+
+        when:
+        fails("custom")
+
+        then:
+        def results = resultsFor("tests/custom")
+        results.assertHtml("suite/withOutput.html", ".custom-entry > p.line") {
+            assert it.size() == 10000
+            assert it.first().text() == "line 0"
+            assert it.last().text() == "line 9999"
+        }
+        results.assertHtml("suite/withOutput.html", ".custom-entry") {
+            def entry = it.first()
+            assert entry.ownText() == "before" + ("|" * 10000) + "after"
+            assert entry.html().contains("<!-- comment -->")
+        }
+    }
+
+    def "build fails when renderer fails"() {
+        given:
+        buildFile << rendererTask("""
+            class BoomRenderer implements HtmlEmittingTestReportEntryRenderer {
+                String getTabName() { "Boom" }
+
+                void render(TestReportEntryRenderingContext context, Appendable htmlOut) {
+                    htmlOut.append("<p>partial")
+                    throw new RuntimeException("boom!")
+                }
+            }
+        """, "new BoomRenderer()")
+
+        when:
+        fails("custom")
+
+        then:
+        failure.assertHasCause("Could not render custom test report entry 'Boom' with BoomRenderer.")
+        failure.assertHasCause("boom!")
+    }
+
+    def "renderer cannot use a reserved tab name"() {
+        given:
+        buildFile << rendererTask("""
+            class SummaryRenderer implements HtmlEmittingTestReportEntryRenderer {
+                String getTabName() { "summary" }
+
+                void render(TestReportEntryRenderingContext context, Appendable htmlOut) {
+                }
+            }
+        """, "new SummaryRenderer()")
+
+        when:
+        fails("custom")
+
+        then:
+        failure.assertHasCause("Test report entry renderer SummaryRenderer has tab name 'summary', which is reserved for the built-in tabs of the test report.")
+    }
+
+    /**
+     * A task named "custom" that reports a suite with a passing test with output and a failing test, using the given renderers.
+     */
+    def rendererTask(String rendererClasses, String rendererInstances) {
+        """
+            ${rendererClasses}
+
+            abstract class RendererCustomTestTask extends DefaultTask {
+                @Inject
+                abstract TestEventReporterFactory getTestEventReporterFactory()
+
+                @Inject
+                abstract ProjectLayout getLayout()
+
+                @TaskAction
+                void runTests() {
+                    try (def reporter = testEventReporterFactory.createTestEventReporter(
+                        "custom",
+                        getLayout().getBuildDirectory().dir("test-results/custom").get(),
+                        getLayout().getBuildDirectory().dir("reports/tests/custom").get(),
+                        true,
+                        [${rendererInstances}]
+                    )) {
+                       reporter.started(Instant.now())
+                       try (def mySuite = reporter.reportTestGroup("suite")) {
+                            mySuite.started(Instant.now())
+                            try (def myTest = mySuite.reportTest("withOutput", "withOutput")) {
+                                 myTest.started(Instant.now())
+                                 myTest.output(Instant.now(), org.gradle.api.tasks.testing.TestOutputEvent.Destination.StdOut, "out 1")
+                                 myTest.output(Instant.now(), org.gradle.api.tasks.testing.TestOutputEvent.Destination.StdErr, "err 1")
+                                 myTest.output(Instant.now(), org.gradle.api.tasks.testing.TestOutputEvent.Destination.StdOut, "out 2")
+                                 myTest.succeeded(Instant.now())
+                            }
+                            try (def myTest = mySuite.reportTest("failing", "failing")) {
+                                 myTest.started(Instant.now())
+                                 myTest.failed(Instant.now(), "failure message")
+                            }
+                            mySuite.failed(Instant.now())
+                       }
+                       reporter.failed(Instant.now())
+                   }
+                }
+            }
+
+            tasks.register("custom", RendererCustomTestTask)
+        """
+    }
+
     def passingTask(String name, boolean print = false) {
         assert !name.toCharArray().any { it.isWhitespace() }
 

@@ -25,7 +25,9 @@ import org.gradle.api.internal.tasks.testing.DefaultTestKeyValueDataEvent;
 import org.gradle.api.internal.tasks.testing.results.serializable.SerializableFailure;
 import org.gradle.api.internal.tasks.testing.results.serializable.SerializableTestResult;
 import org.gradle.api.internal.tasks.testing.results.serializable.TestOutputReader;
+import org.gradle.api.tasks.testing.HtmlEmittingTestReportEntryRenderer;
 import org.gradle.api.tasks.testing.TestOutputEvent;
+import org.gradle.api.tasks.testing.TestReportEntryRenderingContext;
 import org.gradle.api.tasks.testing.TestResult;
 import org.gradle.internal.Pair;
 import org.gradle.internal.html.SimpleHtmlWriter;
@@ -47,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.gradle.reporting.HtmlWriterTools.addClipboardCopyButton;
@@ -389,7 +392,7 @@ public abstract class PerRootTabRenderer extends ReportRenderer<TestTreeModel, S
             return (total - info.getFailedLeafCount()) * 100 / total;
         }
 
-        private static TestResult.ResultType getResultType(PerRootInfo info) {
+        static TestResult.ResultType getResultType(PerRootInfo info) {
             if (info.isLeaf()) {
                 // For leaf nodes, we use the result type of the single result
                 if (info.getResults().size() > 1) {
@@ -453,6 +456,35 @@ public abstract class PerRootTabRenderer extends ReportRenderer<TestTreeModel, S
             );
             htmlWriter.endElement(); // pre
             htmlWriter.endElement(); // span
+        }
+    }
+
+    public static final class ForCustomEntry extends PerRootTabRenderer {
+        private final HtmlEmittingTestReportEntryRenderer renderer;
+        private final Supplier<TestReportEntryRenderingContext> context;
+        private final StreamingHtmlEntryWriter entryWriter;
+
+        /**
+         * @param context the context for the rendered run, shared by all renderers of the run
+         */
+        public ForCustomEntry(
+            int rootIndex,
+            int perRootInfoIndex,
+            HtmlEmittingTestReportEntryRenderer renderer,
+            Supplier<TestReportEntryRenderingContext> context,
+            StreamingHtmlEntryWriter entryWriter
+        ) {
+            super(rootIndex, perRootInfoIndex);
+            this.renderer = renderer;
+            this.context = context;
+            this.entryWriter = entryWriter;
+        }
+
+        @Override
+        protected void render(PerRootInfo info, SimpleHtmlWriter htmlWriter) throws IOException {
+            htmlWriter.startElement("div").attribute("class", "custom-entry");
+            entryWriter.write(renderer, context.get(), htmlWriter);
+            htmlWriter.endElement();
         }
     }
 

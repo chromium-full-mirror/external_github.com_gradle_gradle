@@ -65,7 +65,7 @@ public final class SerializableTestResultStore {
      * This version is only written to the results file, as the two are written together.
      * </p>
      */
-    private static final int STORE_VERSION = 1;
+    private static final int STORE_VERSION = 2;
 
     private static final Logger LOGGER = Logging.getLogger(SerializableTestResultStore.class);
 

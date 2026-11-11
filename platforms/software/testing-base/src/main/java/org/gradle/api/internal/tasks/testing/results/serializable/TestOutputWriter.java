@@ -38,6 +38,7 @@ final class TestOutputWriter implements Closeable {
     private static final class OutputStarts {
         private long startStdout = OutputRanges.NO_OUTPUT;
         private long startStderr = OutputRanges.NO_OUTPUT;
+        private long eventCount;
     }
 
     /**
@@ -70,6 +71,7 @@ final class TestOutputWriter implements Closeable {
             default:
                 throw new IllegalArgumentException("Unknown destination: " + event.getDestination());
         }
+        ranges.eventCount++;
         try {
             outputEventsEncoder.writeLong(id);
             testOutputEventSerializer.write(
@@ -85,7 +87,8 @@ final class TestOutputWriter implements Closeable {
         return OutputRanges.of(
             outputStarts != null ? outputStarts.startStdout : OutputRanges.NO_OUTPUT,
             outputStarts != null ? outputStarts.startStderr : OutputRanges.NO_OUTPUT,
-            outputStarts != null ? outputEventsEncoder.getWritePosition() : OutputRanges.NO_OUTPUT
+            outputStarts != null ? outputEventsEncoder.getWritePosition() : OutputRanges.NO_OUTPUT,
+            outputStarts != null ? outputStarts.eventCount : 0
         );
     }
 

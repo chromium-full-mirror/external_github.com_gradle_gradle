@@ -17,6 +17,7 @@
 package org.gradle.api.internal.tasks.testing;
 
 import org.gradle.api.internal.tasks.testing.operations.TestListenerBuildOperationAdapter;
+import org.gradle.api.internal.tasks.testing.report.generic.TestReportEntryRenderingExecutor;
 import org.gradle.api.internal.tasks.testing.results.AggregateTestEventReporter;
 import org.gradle.api.tasks.testing.TestEventReporterFactory;
 import org.gradle.internal.service.ServiceRegistration;
@@ -50,6 +51,7 @@ public class TestingBasePluginServices extends AbstractGradleModuleServices {
     public static class TestingBuildTreeScopeServices implements ServiceRegistrationProvider {
         void configure(ServiceRegistration serviceRegistration) {
             serviceRegistration.add(AggregateTestEventReporter.class);
+            serviceRegistration.add(TestReportEntryRenderingExecutor.class);
         }
     }
 

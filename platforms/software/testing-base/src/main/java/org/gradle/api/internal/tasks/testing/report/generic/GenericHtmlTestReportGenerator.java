@@ -32,6 +32,7 @@ import org.gradle.api.internal.tasks.testing.results.serializable.TestOutputRead
 import org.gradle.api.internal.tasks.testing.worker.TestEventSerializer;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.api.tasks.testing.HtmlEmittingTestReportEntryRenderer;
 import org.gradle.api.tasks.testing.TestOutputEvent;
 import org.gradle.internal.SafeFileLocationUtils;
 import org.gradle.internal.UncheckedException;
@@ -73,7 +74,9 @@ public abstract class GenericHtmlTestReportGenerator implements TestReportGenera
     private final BuildOperationExecutor buildOperationExecutor;
     private final Deleter deleter;
     private final FileCollectionFactory fileCollectionFactory;
+    private final StreamingHtmlEntryWriter entryWriter;
     private final Path reportsDirectory;
+    private final List<HtmlEmittingTestReportEntryRenderer> entryRenderers;
 
     @Inject
     public GenericHtmlTestReportGenerator(
@@ -81,13 +84,17 @@ public abstract class GenericHtmlTestReportGenerator implements TestReportGenera
         BuildOperationExecutor buildOperationExecutor,
         Deleter deleter,
         FileCollectionFactory fileCollectionFactory,
-        Path reportsDirectory
+        TestReportEntryRenderingExecutor entryRenderingExecutor,
+        Path reportsDirectory,
+        List<HtmlEmittingTestReportEntryRenderer> entryRenderers
     ) {
         this.buildOperationRunner = buildOperationRunner;
         this.buildOperationExecutor = buildOperationExecutor;
         this.deleter = deleter;
         this.fileCollectionFactory = fileCollectionFactory;
+        this.entryWriter = new StreamingHtmlEntryWriter(entryRenderingExecutor);
         this.reportsDirectory = reportsDirectory;
+        this.entryRenderers = ImmutableList.copyOf(entryRenderers);
     }
 
     @Override
@@ -182,7 +189,9 @@ public abstract class GenericHtmlTestReportGenerator implements TestReportGenera
                         requestsBuilder.build(),
                         output,
                         outputReaders,
-                        rootDisplayNames
+                        rootDisplayNames,
+                        entryRenderers,
+                        entryWriter
                     ));
                 }
             }, reportsDirectory.toFile());
@@ -208,19 +217,25 @@ public abstract class GenericHtmlTestReportGenerator implements TestReportGenera
         private final HtmlReportBuilder output;
         private final List<TestOutputReader> outputReaders;
         private final List<String> rootDisplayNames;
+        private final List<HtmlEmittingTestReportEntryRenderer> entryRenderers;
+        private final StreamingHtmlEntryWriter entryWriter;
 
         HtmlReportFileGenerator(
             boolean shrink,
             List<TestTreeModel> requests,
             HtmlReportBuilder output,
             List<TestOutputReader> outputReaders,
-            List<String> rootDisplayNames
+            List<String> rootDisplayNames,
+            List<HtmlEmittingTestReportEntryRenderer> entryRenderers,
+            StreamingHtmlEntryWriter entryWriter
         ) {
             this.shrink = shrink;
             this.requests = requests;
             this.output = output;
             this.outputReaders = outputReaders;
             this.rootDisplayNames = rootDisplayNames;
+            this.entryRenderers = entryRenderers;
+            this.entryWriter = entryWriter;
         }
 
         @Override
@@ -234,7 +249,7 @@ public abstract class GenericHtmlTestReportGenerator implements TestReportGenera
 
         @Override
         public void run(BuildOperationContext context) {
-            GenericPageRenderer renderer = new GenericPageRenderer(shrink, outputReaders, rootDisplayNames);
+            GenericPageRenderer renderer = new GenericPageRenderer(shrink, outputReaders, rootDisplayNames, entryRenderers, entryWriter);
             for (TestTreeModel request : requests) {
                 output.renderHtmlPage(HtmlTestReportPathBuilder.buildFilePathForModel(shrink, request), request, renderer);
             }

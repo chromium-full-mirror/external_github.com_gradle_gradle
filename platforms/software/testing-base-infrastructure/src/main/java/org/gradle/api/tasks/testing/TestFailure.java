@@ -42,10 +42,14 @@ public abstract class TestFailure {
 
     /**
      * Returns the raw failure.
+     * <p>
+     * The raw failure is not available when the failure was reconstructed from stored test results,
+     * for example when rendering test reports. Use {@link #getDetails()} instead in that case.
      *
-     * @return the raw failure
+     * @return the raw failure, or {@code null} if it is not available
      * @since 7.6
      */
+    @Nullable
     public abstract Throwable getRawFailure();
 
     /**

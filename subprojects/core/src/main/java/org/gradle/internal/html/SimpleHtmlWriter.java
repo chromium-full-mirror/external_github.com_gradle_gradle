@@ -57,6 +57,40 @@ public class SimpleHtmlWriter extends SimpleMarkupWriter {
     }
 
     /**
+     * Starts writing raw markup into the current element, finishing any pending start tag.
+     *
+     * <p>
+     * Markup written to the returned {@link Appendable} is not escaped or validated, so the caller is responsible
+     * for it being well-formed. This writer must not be used again until the caller has finished writing raw markup.
+     * </p>
+     */
+    public Appendable startRawMarkup() throws IOException {
+        // Writing empty text finishes any pending start tag
+        characters("");
+        return new Appendable() {
+            @Override
+            public Appendable append(CharSequence csq) throws IOException {
+                writeRaw(String.valueOf(csq));
+                return this;
+            }
+
+            @Override
+            public Appendable append(CharSequence csq, int start, int end) throws IOException {
+                // Only copy the range, not the whole sequence
+                CharSequence sequence = csq == null ? "null" : csq;
+                writeRaw(sequence.subSequence(start, end).toString());
+                return this;
+            }
+
+            @Override
+            public Appendable append(char c) throws IOException {
+                writeRaw(String.valueOf(c));
+                return this;
+            }
+        };
+    }
+
+    /**
      * Construct a path to another file that is relative to the directory of this HTML file.
      *
      * This can be used to create links to other files without requiring absolute paths to be

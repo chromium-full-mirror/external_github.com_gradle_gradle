@@ -18,10 +18,10 @@ package org.gradle.api.internal.tasks.testing.results;
 
 import org.gradle.api.tasks.testing.TestFailure;
 import org.gradle.api.tasks.testing.TestResult;
-import org.gradle.util.internal.CollectionUtils;
 import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultTestResult implements TestResult, Serializable {
@@ -56,6 +56,7 @@ public class DefaultTestResult implements TestResult, Serializable {
     }
 
     @Override
+    @Nullable
     public Throwable getException() {
         return failures.isEmpty() ? null : failures.get(0).getRawFailure();
     }
@@ -68,7 +69,15 @@ public class DefaultTestResult implements TestResult, Serializable {
 
     @Override
     public List<Throwable> getExceptions() {
-        return CollectionUtils.collect(failures, TestFailure::getRawFailure);
+        List<Throwable> exceptions = new ArrayList<>(failures.size());
+        for (TestFailure failure : failures) {
+            Throwable rawFailure = failure.getRawFailure();
+            // Failures reconstructed from stored results have no raw failure
+            if (rawFailure != null) {
+                exceptions.add(rawFailure);
+            }
+        }
+        return exceptions;
     }
 
     @Override
