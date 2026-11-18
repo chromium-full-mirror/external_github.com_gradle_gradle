@@ -23,22 +23,24 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Wraps a checked exception. Carries no other context.
  */
 public final class UncheckedException extends RuntimeException {
-    private UncheckedException(Throwable cause) {
+    private UncheckedException(@Nullable Throwable cause) {
         super(cause);
     }
 
-    private UncheckedException(@Nullable String message, Throwable cause) {
+    private UncheckedException(@Nullable String message, @Nullable Throwable cause) {
         super(message, cause);
     }
 
     /**
      * Note: always throws the failure in some form. The return value is to keep the compiler happy.
      */
-    public static RuntimeException throwAsUncheckedException(Throwable t) {
+    public static RuntimeException throwAsUncheckedException(@Nullable Throwable t) {
         return throwAsUncheckedException(t, false);
     }
 
@@ -46,7 +48,7 @@ public final class UncheckedException extends RuntimeException {
      * Note: always throws the failure in some form. The return value is to keep the compiler happy.
      */
     // TODO Use this in org.gradle.internal.Try.Failure once this gets moved out from :base-services
-    public static RuntimeException throwAsUncheckedException(Throwable t, boolean preserveMessage) {
+    public static RuntimeException throwAsUncheckedException(@Nullable Throwable t, boolean preserveMessage) {
         if (t instanceof InterruptedException) {
             Thread.currentThread().interrupt();
         }
@@ -64,7 +66,7 @@ public final class UncheckedException extends RuntimeException {
             }
         }
         if (preserveMessage) {
-            throw new UncheckedException(t.getMessage(), t);
+            throw new UncheckedException(requireNonNull(t).getMessage(), t);
         } else {
             throw new UncheckedException(t);
         }
